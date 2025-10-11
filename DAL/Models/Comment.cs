@@ -4,17 +4,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace DAL.Models
 {
 
-    public class Comment
+    public class Comment : BaseEntity
     {
-        public required int Id { get; set; }
-
         [ForeignKey(nameof(Author))]
         public required string AuthorId { get; set; }
 
         [StringLength(500)]
         public required string Content { get; set; }
-
-        public required DateTime CommentDate { get; set; }
 
         [ForeignKey(nameof(Video))]
         public required int VideoId { get; set; }
@@ -24,9 +20,13 @@ namespace DAL.Models
         [ForeignKey(nameof(ParentCommentId))]
         public required Comment ParentComment { get; set; }
 
+        [InverseProperty(nameof(ParentComment))]
         public ICollection<Comment> Replies { get; set; } = new List<Comment>();
 
+        [InverseProperty(nameof(User.Comments))]
         public required User Author { get; set; }
+        
+        [InverseProperty(nameof(Video.Comments))]
         public required Video Video { get; set; }
 
 
