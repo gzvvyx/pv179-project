@@ -15,10 +15,10 @@ namespace DAL.Models
         [ForeignKey(nameof(Video))]
         public required int VideoId { get; set; }
 
-        public required int ParentCommentId { get; set; }
+        public int? ParentCommentId { get; set; }
 
         [ForeignKey(nameof(ParentCommentId))]
-        public required Comment ParentComment { get; set; }
+        public Comment? ParentComment { get; set; }
 
         [InverseProperty(nameof(ParentComment))]
         public ICollection<Comment> Replies { get; set; } = new List<Comment>();
