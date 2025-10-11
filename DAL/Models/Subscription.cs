@@ -10,9 +10,8 @@ public enum SubscriptionTimeframe
 
 namespace DAL.Models
 {
-    public class Subscription
+    public class Subscription : BaseEntity
     {
-        public required int Id { get; set; }
         [ForeignKey(nameof(Orderer))]
         public required string OrdererId { get; set; }
         [ForeignKey(nameof(Creator))]
@@ -23,7 +22,10 @@ namespace DAL.Models
         public required DateTime LastRenewedAt { get; set; }
         public required DateTime ExpiresAt { get; set; }
 
+        [InverseProperty(nameof(User.SubscriptionsPurchased))]
         public required User Orderer { get; set; }
+
+        [InverseProperty(nameof(User.SubscriptionsOffered))]
         public required User Creator { get; set; }
     }
 }
