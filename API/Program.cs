@@ -3,6 +3,7 @@ using DAL.Data;
 using DAL.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Templates.Themes;
 using SerilogTracing;
@@ -31,7 +32,33 @@ try
     builder.Services.AddControllers();
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+        options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+        {
+            In = ParameterLocation.Header,
+            Name = "X-API-KEY",
+            Type = SecuritySchemeType.ApiKey,
+            Description = "API Key",
+            Scheme = "ApiKeyScheme"
+        });
+
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "ApiKey"
+                    }
+                },
+                new string[] { }
+            }
+        });
+    });
 
     // Get connection string from appsettings.json
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -58,12 +85,13 @@ try
         app.UseHsts();
     }
 
-    app.UseAuthorization();
+    app.UseMiddleware<API.Middleware.AuthMiddleware>();
 
     // Log all incoming HTTP requests automatically
     app.UseSerilogRequestLogging();
 
     app.MapControllers();
+
     app.Run();
 }
 catch (Exception ex)

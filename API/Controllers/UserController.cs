@@ -1,6 +1,9 @@
-using Business.DTOs;
+﻿using Business.DTOs;
 using Business.Services;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using System.Text;
 
 namespace API.Controllers;
 
@@ -15,6 +18,7 @@ public class UserController : ControllerBase
     {
         _logger = logger;
         _userService = userService;
+
     }
 
     [HttpGet(Name = "GetUsers")]
