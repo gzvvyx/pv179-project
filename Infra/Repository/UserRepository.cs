@@ -18,4 +18,24 @@ public class UserRepository : IUserRepository
     {
         return _userManager.Users.ToListAsync();
     }
+
+    public Task<User?> GetUserByIdAsync(string id)
+    {
+        return _userManager.FindByIdAsync(id);
+    }
+
+    public Task<IdentityResult> CreateUserAsync(User user, string password)
+    {
+        return _userManager.CreateAsync(user, password);
+    }
+
+    public Task<IdentityResult> UpdateUserAsync(User user)
+    {
+        return _userManager.UpdateAsync(user);
+    }
+
+    public Task<IdentityResult> DeleteUserAsync(User user)
+    {
+        return _userManager.DeleteAsync(user);
+    }
 }
