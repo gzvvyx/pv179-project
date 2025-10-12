@@ -10,9 +10,11 @@ public static class ServiceCollectionExtensions
     {
         // Repositories 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IVideoRepository, VideoRepository>();
         
         // Services
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IVideoService, VideoService>();
         
         return services;
     }

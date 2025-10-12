@@ -10,17 +10,12 @@ namespace DAL.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Comments_Comments_ParentCommentId",
-                table: "Comments");
-
-            migrationBuilder.AlterColumn<int>(
+            migrationBuilder.AddColumn<int>(
                 name: "ParentCommentId",
                 table: "Comments",
                 type: "integer",
-                nullable: true,
-                oldClrType: typeof(int),
-                oldType: "integer");
+                nullable: true
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Comments_Comments_ParentCommentId",

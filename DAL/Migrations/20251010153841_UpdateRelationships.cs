@@ -34,7 +34,7 @@ namespace DAL.Migrations
                 newName: "UpdatedAt");
 
             migrationBuilder.RenameColumn(
-                name: "CommentDate",
+                name: "UploadDate",
                 table: "Comments",
                 newName: "UpdatedAt");
 
@@ -153,7 +153,7 @@ namespace DAL.Migrations
             migrationBuilder.RenameColumn(
                 name: "UpdatedAt",
                 table: "Comments",
-                newName: "CommentDate");
+                newName: "UploadDate");
 
             migrationBuilder.AddColumn<int>(
                 name: "PlaylistId",
