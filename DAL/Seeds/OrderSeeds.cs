@@ -94,8 +94,6 @@ public static class OrderSeeds
         order.Amount,
         order.Status,
         order.CreatedAt,
-        order.UpdatedAt,
-        order.Creator,
-        order.Orderer
+        order.UpdatedAt
     };
 }
