@@ -1,5 +1,4 @@
 ﻿using DAL.Models;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace DAL.Seeds;
@@ -92,6 +91,13 @@ public static class SubscriptionSeeds
 
     public static void Seed(this ModelBuilder builder)
     {
+        builder.Entity<Subscription>().HasData(
+            CreateSeed(SubscriptionMiaChen),
+            CreateSeed(SubscriptionSaraIbrahim),
+            CreateSeed(SubscriptionAlexGomez),
+            CreateSeed(SubscriptionLukaNovak),
+            CreateSeed(SubscriptionEmmaJohnson)
+        );
     }
 
     private static object CreateSeed(Subscription subscription) => new
@@ -104,7 +110,7 @@ public static class SubscriptionSeeds
         subscription.SubscribedAt,
         subscription.LastRenewedAt,
         subscription.ExpiresAt,
-        subscription.Orderer,
-        subscription.Creator
+        subscription.CreatedAt,
+        subscription.UpdatedAt
     };
 }

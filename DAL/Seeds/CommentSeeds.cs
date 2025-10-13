@@ -106,10 +106,6 @@ public static class CommentSeeds
             comment.Content,
             comment.VideoId,
             comment.ParentCommentId,
-            comment.ParentComment,
-            comment.Replies,
-            comment.Author,
-            comment.Video,
             comment.CreatedAt,
             comment.UpdatedAt
         };

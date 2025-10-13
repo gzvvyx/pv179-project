@@ -74,12 +74,9 @@ public static class PlaylistSeeds
             playlist.Id,
             playlist.CreatorId,
             playlist.Name,
-            playlist.Creator,
             playlist.Description,
             playlist.CreatedAt,
-            playlist.UpdatedAt,
-            playlist.Videos
-
+            playlist.UpdatedAt
         };
     }
 }
