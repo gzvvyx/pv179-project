@@ -15,8 +15,8 @@ public class Order : BaseEntity
     public required string OrdererId { get; init; }
     [ForeignKey(nameof(Creator))]
     public required string CreatorId { get; init; }
-    public required decimal Amount { get; init; }
-    public required OrderStatus Status { get; init; }
+    public required decimal Amount { get; set; }
+    public required OrderStatus Status { get; set; }
     
     [InverseProperty(nameof(User.OrdersPlaced))]
     public required User Orderer { get; set; }
