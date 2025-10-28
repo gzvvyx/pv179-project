@@ -74,15 +74,21 @@ try
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
     builder.Services.AddAppServices();
-    builder.Services.AddScoped(provider =>
-    {
-        var options = provider.GetRequiredService<DbContextOptions<AppDbContext>>();
-        var context = new AppDbContext(options, seedData);
-        context.Database.EnsureCreated();
-        return context;
-    });
 
     var app = builder.Build();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        await db.Database.MigrateAsync();
+
+        if (app.Environment.IsDevelopment())
+        {
+            await DAL.Seeds.BogusSeeder.SeedAsync(db);
+        }
+    }
+
 
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
