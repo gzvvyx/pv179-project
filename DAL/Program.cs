@@ -12,12 +12,4 @@ bool seedData = builder.Environment.IsDevelopment();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddScoped(provider =>
-{
-    var options = provider.GetRequiredService<DbContextOptions<AppDbContext>>();
-    var context = new AppDbContext(options, seedData);
-    context.Database.EnsureCreated();
-    return context;
-});
-
 var app = builder.Build();

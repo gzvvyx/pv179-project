@@ -33,7 +33,7 @@ namespace DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CommentAuthorId")
+                    b.Property<string>("AuthorId")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -50,7 +50,7 @@ namespace DAL.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CommentAuthorId");
+                    b.HasIndex("AuthorId");
 
                     b.HasIndex("VideoId");
 
@@ -377,9 +377,9 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Models.Comment", b =>
                 {
-                    b.HasOne("DAL.Models.User", "CommentAuthor")
+                    b.HasOne("DAL.Models.User", "Author")
                         .WithMany()
-                        .HasForeignKey("CommentAuthorId")
+                        .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -389,7 +389,7 @@ namespace DAL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("CommentAuthor");
+                    b.Navigation("Author");
 
                     b.Navigation("Video");
                 });

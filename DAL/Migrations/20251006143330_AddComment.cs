@@ -18,7 +18,7 @@ namespace DAL.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CommentAuthorId = table.Column<string>(type: "text", nullable: false),
+                    AuthorId = table.Column<string>(type: "text", nullable: false),
                     Content = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     UploadDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     VideoId = table.Column<int>(type: "integer", nullable: false)
@@ -27,8 +27,8 @@ namespace DAL.Migrations
                 {
                     table.PrimaryKey("PK_Comments", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Comments_AspNetUsers_CommentAuthorId",
-                        column: x => x.CommentAuthorId,
+                        name: "FK_Comments_AspNetUsers_AuthorId",
+                        column: x => x.AuthorId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -41,9 +41,9 @@ namespace DAL.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Comments_CommentAuthorId",
+                name: "IX_Comments_AuthorId",
                 table: "Comments",
-                column: "CommentAuthorId");
+                column: "AuthorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_VideoId",
