@@ -1,4 +1,5 @@
-using Common.DI;
+using Business.DI;
+using Infra.DI;
 using DAL.Data;
 using DAL.Models;
 using Microsoft.AspNetCore.Identity;
@@ -18,7 +19,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
-builder.Services.AddAppServices();
+
+builder.Services.AddBusinessServices();
+builder.Services.AddInfraServices();
 
 var app = builder.Build();
 

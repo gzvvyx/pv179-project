@@ -1,6 +1,7 @@
 ﻿using Business.DTOs;
 using Business.Mappers;
 using DAL.Models;
+using DAL.Models.Enums;
 using Infra.Repository;
 using Microsoft.AspNetCore.Identity;
 

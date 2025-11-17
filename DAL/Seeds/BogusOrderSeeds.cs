@@ -1,6 +1,7 @@
 ﻿using Bogus;
 using DAL.Data;
 using DAL.Models;
+using DAL.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace DAL.Seeds;

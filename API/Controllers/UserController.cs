@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class UserController : ControllerBase
 {
     private readonly ILogger<UserController> _logger;
@@ -36,7 +36,7 @@ public class UserController : ControllerBase
         return Ok(user);
     }
 
-    [HttpPost]
+    [HttpPost(Name = "CreateUser")]
     public async Task<ActionResult<UserDto>> Create([FromBody] UserCreateDto dto)
     {
         if (!ModelState.IsValid)
@@ -54,7 +54,7 @@ public class UserController : ControllerBase
         return CreatedAtRoute("GetUserById", new { id = user.Id }, user);
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id}", Name = "UpdateUser")]
     public async Task<ActionResult<UserDto>> Update(string id, [FromBody] UserUpdateDto dto)
     {
         if (!ModelState.IsValid)
@@ -77,7 +77,7 @@ public class UserController : ControllerBase
         return BadRequest(result.Errors.Select(error => error.Description));
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id}", Name = "DeleteUser")]
     public async Task<IActionResult> Delete(string id)
     {
         var result = await _userService.DeleteAsync(id);

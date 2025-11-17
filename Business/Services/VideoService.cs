@@ -1,4 +1,5 @@
 using Business.DTOs;
+using Infra.DTOs;
 using Business.Mappers;
 using DAL.Models;
 using Infra.Repository;
@@ -134,5 +135,12 @@ public class VideoService : IVideoService
         await _videoRepository.DeleteAsync(video);
 
         return IdentityResult.Success;
+    }
+
+    public async Task<List<VideoDto>> GetByFilterAsync(VideoFilterDto dto)
+    {
+        var videos = await _videoRepository.GetByFilterAsync(dto);
+
+        return _mapper.Map(videos);
     }
 }

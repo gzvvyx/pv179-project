@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class CommentController : ControllerBase
 {
     private readonly ILogger<CommentController> _logger;
@@ -23,7 +23,7 @@ public class CommentController : ControllerBase
         return await _commentService.GetAllAsync();
     }
 
-    [HttpPost("{id:int}", Name = "GetCommentById")]
+    [HttpGet("{id:int}", Name = "GetCommentById")]
     public async Task<ActionResult<CommentDto>> GetById(int id)
     {
         var comment = await _commentService.GetByIdAsync(id);
