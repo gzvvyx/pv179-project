@@ -10,6 +10,9 @@ build:
   image: mcr.microsoft.com/dotnet/sdk:8.0
   tags:
     - shared-fi
+  before_script:
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt-get install -y nodejs
   script:
     - dotnet restore
     - dotnet build --configuration Release --no-restore
