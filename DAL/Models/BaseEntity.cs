@@ -9,7 +9,6 @@ public abstract class BaseEntity
     [Required]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public required int Id { get; set; }
-
     [Required]
     public required DateTime CreatedAt { get; set; }
 

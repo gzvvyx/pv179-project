@@ -1,7 +1,8 @@
 using Business.DI;
-using Infra.DI;
+using Common.DI;
 using DAL.Data;
 using DAL.Models;
+using Infra.DI;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +23,9 @@ builder.Services.AddIdentity<User, IdentityRole>()
 
 builder.Services.AddBusinessServices();
 builder.Services.AddInfraServices();
+
+// Current user service
+builder.Services.AddCurrentUser();
 
 var app = builder.Build();
 
