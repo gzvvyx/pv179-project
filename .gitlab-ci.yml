@@ -1,5 +1,6 @@
 stages:
   - build
+  - test
 
 variables:
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
@@ -16,3 +17,15 @@ build:
   script:
     - dotnet restore
     - dotnet build --configuration Release --no-restore
+
+test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  tags:
+    - shared-fi
+  before_script:
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt-get install -y nodejs
+  script:
+    - dotnet restore
+    - dotnet test --configuration Release --no-restore --verbosity normal
