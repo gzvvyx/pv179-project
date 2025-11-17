@@ -1,5 +1,6 @@
 using DAL.Data;
 using DAL.Models;
+using Infra.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repository;
@@ -53,6 +54,26 @@ public class VideoRepository : IVideoRepository
     {
         _dbContext.Videos.Remove(video);
         await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<Video>> GetByFilterAsync(VideoFilterDto dto)
+    {
+        var query = _dbContext.Videos.AsQueryable();
+
+        if (!string.IsNullOrEmpty(dto.Title))
+        {
+            query = query.Where(video => video.Title.Contains(dto.Title));
+        }
+        if (!string.IsNullOrEmpty(dto.Description))
+        {
+            query = query.Where(video => video.Description.Contains(dto.Description));
+        }
+        if (!string.IsNullOrEmpty(dto.CreatorId))
+        {
+            query = query.Where(video => video.CreatorId == dto.CreatorId);
+        }
+
+        return await query.ToListAsync();
     }
 }
 

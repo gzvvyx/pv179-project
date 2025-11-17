@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class SubscriptionController : ControllerBase
 {
 
@@ -37,7 +37,7 @@ public class SubscriptionController : ControllerBase
         return Ok(subscription);
     }
 
-    [HttpPost]
+    [HttpPost(Name = "CreateSubscription")]
     public async Task<ActionResult<SubscriptionDto>> Create([FromBody] SubscriptionCreateDto subscriptionDto)
     {
         if (!ModelState.IsValid)
@@ -55,7 +55,7 @@ public class SubscriptionController : ControllerBase
         return CreatedAtRoute("GetSubscriptionById", new { id = subscription.Id }, subscription);
     }
 
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:int}", Name = "UpdateSubscription")]
     public async Task<ActionResult<SubscriptionDto>> Update(int id, [FromBody] SubscriptionUpdateDto subscriptionDto)
     {
         if (!ModelState.IsValid)
@@ -78,7 +78,7 @@ public class SubscriptionController : ControllerBase
         return BadRequest(result.Errors.Select(error => error.Description));
     }
 
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id:int}", Name = "DeleteSubscription")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _subscriptionService.DeleteAsync(id);

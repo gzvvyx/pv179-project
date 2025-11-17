@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class PlaylistController : ControllerBase
 {
     private readonly ILogger<PlaylistController> _logger;
@@ -23,7 +23,7 @@ public class PlaylistController : ControllerBase
         return await _playlistService.GetAllAsync();
     }
 
-    [HttpPost("{id:int}", Name = "GetPlaylistById")]
+    [HttpGet("{id:int}", Name = "GetPlaylistById")]
     public async Task<ActionResult<PlaylistDto>> GetById(int id)
     {
         var playlist = await _playlistService.GetByIdAsync(id);

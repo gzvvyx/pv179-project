@@ -1,4 +1,4 @@
-﻿using DAL.Models;
+﻿using DAL.Models.Enums;
 
 namespace Business.DTOs;
 

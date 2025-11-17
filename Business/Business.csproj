@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <NoDefaultLaunchSettingsFile>True</NoDefaultLaunchSettingsFile>
+        <OutputType>Library</OutputType>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,7 +13,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Riok.Mapperly" Version="4.2.1" />
+        <PackageReference Include="Riok.Mapperly" Version="4.2.1" />
+	    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     </ItemGroup>
 
 </Project>

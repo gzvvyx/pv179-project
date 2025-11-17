@@ -1,23 +1,33 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace DAL.Models
+namespace DAL.Models;
+
+public class Video : BaseEntity
 {
-    public class Video : BaseEntity
-    {
-        [ForeignKey(nameof(Creator))]
-        public required string CreatorId { get; set; }
-        public required string Title { get; set; }
-        public required string Description { get; set; }
-        public required string Url { get; set; }
-        public required string ThumbnailUrl { get; set; }
+    [Required]
+    [ForeignKey(nameof(Creator))]
+    public required string CreatorId { get; set; }
 
-        [InverseProperty(nameof(User.Videos))]
-        public required User Creator { get; set; }
+    [Required]
+    public required string Title { get; set; }
 
-        [InverseProperty(nameof(Comment.Video))]
-        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    [Required]
+    public required string Description { get; set; }
 
-        [InverseProperty(nameof(Playlist.Videos))]
-        public ICollection<Playlist> Playlists { get; set; } = new List<Playlist>();
-    }
+    [Required]
+    public required string Url { get; set; }
+
+    [Required]
+    public required string ThumbnailUrl { get; set; }
+
+    [Required]
+    [InverseProperty(nameof(User.Videos))]
+    public required User Creator { get; set; }
+
+    [InverseProperty(nameof(Comment.Video))]
+    public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+
+    [InverseProperty(nameof(Playlist.Videos))]
+    public ICollection<Playlist> Playlists { get; set; } = new List<Playlist>();
 }

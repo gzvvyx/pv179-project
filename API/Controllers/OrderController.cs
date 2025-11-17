@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class OrderController : ControllerBase
 {
     private readonly ILogger<OrderController> _logger;
@@ -24,7 +24,7 @@ public class OrderController : ControllerBase
         return await _orderService.GetAllAsync();
     }
 
-    [HttpPost("{id:int}", Name = "GetOrderById")]
+    [HttpGet("{id:int}", Name = "GetOrderById")]
     public async Task<ActionResult<OrderDto>> GetById(int id)
     {
         var order = await _orderService.GetByIdAsync(id);
