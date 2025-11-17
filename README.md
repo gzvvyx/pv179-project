@@ -117,6 +117,28 @@ Key settings include:
 - **Protected branches** to ensure that only approved changes can be merged into main development branches.
 - **Required reviewers** for merge requests, enforcing code quality and peer review.
 
+### Tests
+The repository includes unit tests under `Business.Tests` (xUnit + Moq) that exercise Business layer services without touching the database.
+- Frameworks: xUnit, Moq, Microsoft.NET.Test.Sdk
+- Test project: `Business.Tests/Business.Tests.csproj`
+
+Existing test suites:
+- `Business.Tests/VideoServiceTests.cs` — covers Create/GetAll/GetById/GetByFilter/Update/Delete scenarios for `VideoService`.
+- `Business.Tests/OrderServiceTests.cs` — covers Create/GetAll/GetById/Update/Delete scenarios for `OrderService`.
+- `Business.Tests/UserServiceTests.cs` — file present but currently contains no implemented tests.
+
+How tests mock dependencies:
+- Repositories (`IVideoRepository`, `IUserRepository`, `IOrderRepository`, etc.) are mocked with Moq (strict mocks) to verify interactions and capture passed entities.
+
+Run tests:
+```bash
+# run all tests in the solution
+dotnet test
+
+# run only the Business.Tests project
+dotnet test Business.Tests/Business.Tests.csproj
+```
+
 ## Use case diagram
 ![Use case diagram](Docs/pv179-usecase.png)
 ## Data model
