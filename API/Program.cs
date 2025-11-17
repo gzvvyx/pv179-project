@@ -10,10 +10,11 @@ using Serilog.Templates.Themes;
 using SerilogTracing;
 using SerilogTracing.Expressions;
 
+var builder = WebApplication.CreateBuilder(args);
 
 // Global logger configuration
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console(Formatters.CreateConsoleTextFormatter(theme: TemplateTheme.Code))
+    .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
 
 // Enable tracing of ASP.NET requests
@@ -23,7 +24,6 @@ using var listener = new ActivityListenerConfiguration()
 
 Log.Information("Starting application...");
 
-var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Host.UseSerilog();
 
@@ -60,6 +60,7 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+
 
 // Get connection string from appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
