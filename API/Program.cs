@@ -1,4 +1,5 @@
-using Common.DI;
+using Business.DI;
+using Infra.DI;
 using DAL.Data;
 using DAL.Models;
 using Microsoft.AspNetCore.Identity;
@@ -9,10 +10,11 @@ using Serilog.Templates.Themes;
 using SerilogTracing;
 using SerilogTracing.Expressions;
 
+var builder = WebApplication.CreateBuilder(args);
 
 // Global logger configuration
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console(Formatters.CreateConsoleTextFormatter(theme: TemplateTheme.Code))
+    .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
 
 // Enable tracing of ASP.NET requests
@@ -20,99 +22,93 @@ using var listener = new ActivityListenerConfiguration()
     .Instrument.AspNetCoreRequests()
     .TraceToSharedLogger();
 
-try
+Log.Information("Starting application...");
+
+builder.Logging.ClearProviders();
+builder.Host.UseSerilog();
+
+// Add services to the container.
+builder.Services
+    .AddControllers()
+    .AddXmlDataContractSerializerFormatters();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
 {
-    Log.Information("Starting application...");
-
-    var builder = WebApplication.CreateBuilder(args);
-    builder.Logging.ClearProviders();
-    builder.Host.UseSerilog();
-
-    // Add services to the container.
-    builder.Services.AddControllers();
-    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(options =>
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
     {
-        options.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
-        options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
-        {
-            In = ParameterLocation.Header,
-            Name = "X-API-KEY",
-            Type = SecuritySchemeType.ApiKey,
-            Description = "API Key",
-            Scheme = "ApiKeyScheme"
-        });
+        In = ParameterLocation.Header,
+        Name = "X-API-KEY",
+        Type = SecuritySchemeType.ApiKey,
+        Description = "API Key",
+        Scheme = "ApiKeyScheme"
+    });
 
-        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
         {
+            new OpenApiSecurityScheme
             {
-                new OpenApiSecurityScheme
+                Reference = new OpenApiReference
                 {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "ApiKey"
-                    }
-                },
-                new string[] { }
-            }
-        });
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "ApiKey"
+                }
+            },
+            new string[] { }
+        }
     });
+});
 
-    // Get connection string from appsettings.json
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-    bool seedData = builder.Environment.IsDevelopment();
+// Get connection string from appsettings.json
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-    // Register DbContext with Npgsql provider
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(connectionString));
-    builder.Services.AddIdentity<User, IdentityRole>()
-        .AddEntityFrameworkStores<AppDbContext>()
-        .AddDefaultTokenProviders();
-    builder.Services.AddAppServices();
-    builder.Services.AddScoped(provider =>
-    {
-        var options = provider.GetRequiredService<DbContextOptions<AppDbContext>>();
-        var context = new AppDbContext(options, seedData);
-        context.Database.EnsureCreated();
-        return context;
-    });
+// Register DbContext with Npgsql provider
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
-    var app = builder.Build();
+builder.Services.AddIdentity<User, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
 
-    // Configure the HTTP request pipeline.
+builder.Services.AddBusinessServices();
+builder.Services.AddInfraServices();
+
+var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    await db.Database.MigrateAsync();
+
     if (app.Environment.IsDevelopment())
     {
-        app.UseSwagger();
-        app.UseSwaggerUI();
+        await DAL.Seeds.BogusSeeder.SeedAsync(db);
     }
-    else
-    {
-        app.UseHttpsRedirection();
-        app.UseHsts();
-    }
-
-    app.UseMiddleware<API.Middleware.AuthMiddleware>();
-
-    // Log all incoming HTTP requests automatically
-    app.UseSerilogRequestLogging();
-
-    app.MapControllers();
-
-    app.Run();
 }
-catch (Exception ex)
+
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
 {
-    Log.Fatal(ex, "Application terminated unexpectedly");
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
-finally
+else
 {
-    await Log.CloseAndFlushAsync();
+    app.UseHttpsRedirection();
+    app.UseHsts();
 }
 
+app.UseMiddleware<API.Middleware.AuthMiddleware>();
+app.UseMiddleware<API.Middleware.ResponseFormatMiddleware>();
 
+// Log all incoming HTTP requests automatically
+app.UseSerilogRequestLogging();
 
+app.MapControllers();
 
-
+app.Run();

@@ -1,13 +1,14 @@
 using DAL.Models;
-using DAL.Seeds;
+using DAL.Models.Enums;
+using DAL.Services;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace DAL.Data;
 
-public class AppDbContext : IdentityDbContext
+public class AppDbContext : IdentityDbContext<User>
 {
-    private readonly bool _seedData;
+    private readonly ICurrentUserService? _currentUserService;
 
     public DbSet<User> Users { get; set; }
     public DbSet<Order> Orders { get; set; }
@@ -15,69 +16,94 @@ public class AppDbContext : IdentityDbContext
     public DbSet<Video> Videos { get; set; }
     public DbSet<Playlist> Playlists { get; set; }
     public DbSet<Comment> Comments { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
 
-    public AppDbContext(DbContextOptions options, bool seedData = false) : base(options)
+    public AppDbContext(DbContextOptions options, ICurrentUserService? currentUserService = null) : base(options)
     {
-        _seedData = seedData;
+        _currentUserService = currentUserService;
     }
 
-    protected override void OnModelCreating(ModelBuilder builder)
+    public override int SaveChanges()
     {
-        base.OnModelCreating(builder);
+        AppendAuditLogs();
+        UpdateTimestamps();
+        return base.SaveChanges();
+    }
 
-        builder.Entity<Order>()
-            .HasOne(o => o.Orderer)
-            .WithMany(u => u.OrdersPlaced)
-            .OnDelete(DeleteBehavior.Cascade);
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        AppendAuditLogs();
+        UpdateTimestamps();
+        return await base.SaveChangesAsync(cancellationToken);
+    }
 
-        builder.Entity<Order>()
-            .HasOne(o => o.Creator)
-            .WithMany(u => u.OrdersReceived)
-            .OnDelete(DeleteBehavior.Cascade);
+    private void AppendAuditLogs()
+    {
+        var userId = _currentUserService?.GetUserId();
+        var now = DateTime.UtcNow;
+        var audits = new List<AuditLog>();
 
-        builder.Entity<Subscription>()
-            .HasOne(s => s.Orderer)
-            .WithMany(u => u.SubscriptionsPurchased)
-            .OnDelete(DeleteBehavior.Cascade);
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is Video video &&
+                (entry.State == EntityState.Added ||
+                 entry.State == EntityState.Modified ||
+                 entry.State == EntityState.Deleted))
+            {
+                var id = entry.State == EntityState.Added ? 0 : video.Id;
+                var action = entry.State switch
+                {
+                    EntityState.Added => AuditAction.Create,
+                    EntityState.Modified => AuditAction.Update,
+                    EntityState.Deleted => AuditAction.Delete,
+                    _ => throw new InvalidOperationException()
+                };
 
-        builder.Entity<Subscription>()
-            .HasOne(s => s.Creator)
-            .WithMany(u => u.SubscriptionsOffered)
-            .OnDelete(DeleteBehavior.Cascade);
+                audits.Add(new AuditLog
+                {
+                    Id = default,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    UserId = userId,
+                    Table = nameof(Videos),
+                    EntityId = id,
+                    Action = action
+                });
+            }
+        }
 
-        builder.Entity<Video>()
-            .HasOne(v => v.Creator)
-            .WithMany(u => u.Videos)
-            .OnDelete(DeleteBehavior.Cascade);
+        AuditLogs.AddRange(audits);
+    }
 
-        builder.Entity<Comment>()
-            .HasOne(c => c.Author)
-            .WithMany(u => u.Comments)
-            .OnDelete(DeleteBehavior.Cascade);
+    private void UpdateTimestamps()
+    {
+        var now = DateTime.UtcNow;
 
-        builder.Entity<Playlist>()
-            .HasOne(p => p.Creator)
-            .WithMany(u => u.Playlists)
-            .OnDelete(DeleteBehavior.Cascade);
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    if (entry.Entity.CreatedAt == default)
+                    {
+                        entry.Entity.CreatedAt = now;
+                    }
+                    if (entry.Entity.UpdatedAt == default)
+                    {
+                        entry.Entity.UpdatedAt = now;
+                    }
+                    break;
 
-        builder.Entity<Comment>()
-            .HasOne(c => c.Video)
-            .WithMany(v => v.Comments)
-            .OnDelete(DeleteBehavior.Cascade);
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAt = now;
+                    break;
+            }
+        }
+    }
 
-        builder.Entity<Comment>()
-            .HasOne(c => c.ParentComment)
-            .WithMany(c => c.Replies)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        if (!_seedData) return;
-        SeedsInit.LoadLists();
-
-        UserSeeds.Seed(builder);
-        OrderSeeds.Seed(builder);
-        SubscriptionSeeds.Seed(builder);
-        VideoSeeds.Seed(builder);
-        PlaylistSeeds.Seed(builder);
-        CommentSeeds.Seed(builder);
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<AuditLog>().ToTable("AuditLogs");
     }
 }

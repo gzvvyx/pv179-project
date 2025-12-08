@@ -1,31 +1,39 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using DAL.Models.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public enum SubscriptionTimeframe
+namespace DAL.Models;
+
+public class Subscription : BaseEntity
 {
-    Month,
-    HalfYear,
-    Year
-}
+    [Required]
+    [ForeignKey(nameof(Orderer))]
+    public required string OrdererId { get; set; }
 
+    [Required]
+    [ForeignKey(nameof(Creator))]
+    public required string CreatorId { get; set; }
 
-namespace DAL.Models
-{
-    public class Subscription : BaseEntity
-    {
-        [ForeignKey(nameof(Orderer))]
-        public required string OrdererId { get; set; }
-        [ForeignKey(nameof(Creator))]
-        public required string CreatorId { get; set; }
-        public required bool Active { get; set; }
-        public required SubscriptionTimeframe Timeframe { get; set; }
-        public required DateTime SubscribedAt { get; set; }
-        public required DateTime LastRenewedAt { get; set; }
-        public required DateTime ExpiresAt { get; set; }
+    [Required]
+    public required bool Active { get; set; }
 
-        [InverseProperty(nameof(User.SubscriptionsPurchased))]
-        public required User Orderer { get; set; }
+    [Required]
+    public required SubscriptionTimeframe Timeframe { get; set; }
 
-        [InverseProperty(nameof(User.SubscriptionsOffered))]
-        public required User Creator { get; set; }
-    }
+    [Required]
+    public required DateTime SubscribedAt { get; set; }
+
+    [Required]
+    public required DateTime LastRenewedAt { get; set; }
+
+    [Required]
+    public required DateTime ExpiresAt { get; set; }
+
+    [Required]
+    [InverseProperty(nameof(User.SubscriptionsPurchased))]
+    public required User Orderer { get; set; }
+
+    [Required]
+    [InverseProperty(nameof(User.SubscriptionsOffered))]
+    public required User Creator { get; set; }
 }

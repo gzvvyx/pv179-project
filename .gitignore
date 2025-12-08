@@ -84,3 +84,6 @@ coverage
 
 # Visual Studio
 .vs
+
+# Rider
+.idea

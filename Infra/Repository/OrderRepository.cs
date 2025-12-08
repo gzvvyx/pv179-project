@@ -35,7 +35,7 @@ public class OrderRepository : IOrderRepository
             _dbContext.Attach(order.Creator);
         }
 
-        if (order.Creator is not null)
+        if (order.Orderer is not null)
         {
             _dbContext.Attach(order.Orderer);
         }
@@ -52,7 +52,7 @@ public class OrderRepository : IOrderRepository
             _dbContext.Attach(order.Creator);
         }
 
-        if (order.Creator is not null)
+        if (order.Orderer is not null)
         {
             _dbContext.Attach(order.Orderer);
         }

@@ -7,19 +7,22 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.20" />
 		<PackageReference Include="Serilog" Version="4.3.0" />
-		<PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
-		<PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+		<PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-		<PackageReference Include="Serilog.Sinks.Seq" Version="9.0.0" />
+		<PackageReference Include="Serilog.Sinks.PostgreSQL" Version="2.3.0" />
 		<PackageReference Include="SerilogTracing" Version="2.3.1" />
 		<PackageReference Include="SerilogTracing.Expressions" Version="2.3.1" />
 		<PackageReference Include="SerilogTracing.Instrumentation.AspNetCore" Version="2.3.1" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.20">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Business\Business.csproj" />
 		<ProjectReference Include="..\DAL\DAL.csproj" />
 		<ProjectReference Include="..\Infra\Infra.csproj" />
-		<ProjectReference Include="..\Common\Common.csproj" />
 	</ItemGroup>
 </Project>
