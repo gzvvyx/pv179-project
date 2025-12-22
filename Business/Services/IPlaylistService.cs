@@ -1,4 +1,5 @@
 ﻿using Business.DTOs;
+using Infra.DTOs;
 using Microsoft.AspNetCore.Identity;
 
 namespace Business.Services
@@ -10,5 +11,6 @@ namespace Business.Services
         Task<(IdentityResult Result, PlaylistDto? Playlist)> CreateAsync(PlaylistCreateDto dto);
         Task<(IdentityResult Result, PlaylistDto? Playlist)> UpdateAsync(int id, PlaylistUpdateDto dto);
         Task<IdentityResult> DeleteAsync(int id);
+        Task<List<PlaylistDto>> GetByFilterAsync(PlaylistFilterDto dto);
     }
 }

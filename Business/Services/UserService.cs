@@ -1,6 +1,7 @@
 using Business.DTOs;
 using Business.Mappers;
 using DAL.Models;
+using Infra.DTOs;
 using Infra.Repository;
 using Microsoft.AspNetCore.Identity;
 
@@ -95,5 +96,11 @@ public class UserService : IUserService
         }
 
         return await _userRepository.DeleteUserAsync(user);
+    }
+
+    public async Task<List<UserDto>> GetByFilterAsync(UserFilterDto dto)
+    {
+        var users = await _userRepository.GetUsersByFilterAsync(dto);
+        return _mapper.Map(users);
     }
 }

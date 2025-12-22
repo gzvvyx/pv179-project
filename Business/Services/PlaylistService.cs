@@ -1,6 +1,7 @@
 ﻿using Business.DTOs;
 using Business.Mappers;
 using DAL.Models;
+using Infra.DTOs;
 using Infra.Repository;
 using Microsoft.AspNetCore.Identity;
 
@@ -96,6 +97,10 @@ namespace Business.Services
             return IdentityResult.Success;
         }
 
-
+        public async Task<List<PlaylistDto>> GetByFilterAsync(PlaylistFilterDto dto)
+        {
+            var playlists = await _playlistRepository.GetByFilterAsync(dto);
+            return _mapper.Map(playlists);
+        }
     }
 }
