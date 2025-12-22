@@ -1,4 +1,5 @@
 ﻿using DAL.Models;
+using Infra.DTOs;
 
 namespace Infra.Repository
 {
@@ -9,5 +10,7 @@ namespace Infra.Repository
         Task CreateAsync(Playlist playlist);
         Task UpdateAsync(Playlist playlist);
         Task DeleteAsync(Playlist playlist);
+        Task<List<Playlist>> GetByFilterAsync(PlaylistFilterDto dto);
+
     }
 }

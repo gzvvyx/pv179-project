@@ -1,5 +1,6 @@
 ﻿using DAL.Data;
 using DAL.Models;
+using Infra.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repository
@@ -54,6 +55,25 @@ namespace Infra.Repository
         {
             _dbContext.Playlists.Remove(playlist);
             await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<List<Playlist>> GetByFilterAsync(PlaylistFilterDto dto)
+        {
+            var query = _dbContext.Playlists.AsQueryable();
+            if (!string.IsNullOrEmpty(dto.CreatorId))
+            {
+                query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
+            }
+            if (!string.IsNullOrEmpty(dto.Name))
+            {
+                query = query.Where(playlist => playlist.Name.Contains(dto.Name));
+            }
+            if (!string.IsNullOrEmpty(dto.Description))
+            {
+                query = query.Where(playlist => playlist.Description.Contains(dto.Description));
+            }
+
+            return await query.ToListAsync();
         }
     }
 }

@@ -1,4 +1,5 @@
 using DAL.Models;
+using Infra.DTOs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,8 +8,8 @@ namespace Infra.Repository;
 public class UserRepository : IUserRepository
 {
     private readonly UserManager<User> _userManager;
-    
-    public UserRepository(UserManager<User> userManager) 
+
+    public UserRepository(UserManager<User> userManager)
     {
         _userManager = userManager;
     }
@@ -37,5 +38,22 @@ public class UserRepository : IUserRepository
     public Task<IdentityResult> DeleteUserAsync(User user)
     {
         return _userManager.DeleteAsync(user);
+    }
+
+    public async Task<List<User>> GetUsersByFilterAsync(UserFilterDto dto)
+    {
+        var query = _userManager.Users.AsQueryable();
+
+        if (!string.IsNullOrEmpty(dto.UserName))
+        {
+            query = query.Where(user => user.UserName != null && user.UserName.Contains(dto.UserName));
+        }
+
+        if (!string.IsNullOrEmpty(dto.Email))
+        {
+            query = query.Where(user => user.Email != null && user.Email.Contains(dto.Email));
+        }
+
+        return await query.ToListAsync();
     }
 }
