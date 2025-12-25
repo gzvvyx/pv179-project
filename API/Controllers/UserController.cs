@@ -1,5 +1,6 @@
 ﻿using Business.DTOs;
 using Business.Services;
+using Infra.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -19,9 +20,18 @@ public class UserController : ControllerBase
     }
 
     [HttpGet(Name = "GetUsers")]
-    public async Task<IEnumerable<UserDto>> Get()
+    public async Task<IEnumerable<UserDto>> Get(
+        [FromQuery] string? userName,
+        [FromQuery] string? email
+    )
     {
-        return await _userService.GetAllAsync();
+        var filter = new UserFilterDto
+        {
+            UserName = userName,
+            Email = email
+        };
+
+        return await _userService.GetByFilterAsync(filter);
     }
 
     [HttpGet("{id}", Name = "GetUserById")]
