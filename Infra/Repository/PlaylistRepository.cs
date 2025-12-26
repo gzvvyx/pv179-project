@@ -60,17 +60,20 @@ namespace Infra.Repository
         public async Task<List<Playlist>> GetByFilterAsync(PlaylistFilterDto dto)
         {
             var query = _dbContext.Playlists.AsQueryable();
+
             if (!string.IsNullOrEmpty(dto.CreatorId))
             {
                 query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
             }
-            if (!string.IsNullOrEmpty(dto.Name))
+
+            if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
             {
-                query = query.Where(playlist => playlist.Name.Contains(dto.Name));
-            }
-            if (!string.IsNullOrEmpty(dto.Description))
-            {
-                query = query.Where(playlist => playlist.Description.Contains(dto.Description));
+                var searchTerm = dto.Name ?? dto.Description;
+
+                query = query.Where(playlist =>
+                    EF.Functions.ILike(playlist.Name, $"%{searchTerm}%") ||
+                    (playlist.Description != null && EF.Functions.ILike(playlist.Description, $"%{searchTerm}%"))
+                );
             }
 
             return await query.ToListAsync();

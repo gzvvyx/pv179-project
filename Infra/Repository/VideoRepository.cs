@@ -59,15 +59,16 @@ public class VideoRepository : IVideoRepository
     public async Task<List<Video>> GetByFilterAsync(VideoFilterDto dto)
     {
         var query = _dbContext.Videos.AsQueryable();
+        if (!string.IsNullOrEmpty(dto.Title) || !string.IsNullOrEmpty(dto.Description))
+        {
+            var searchTerm = dto.Title ?? dto.Description;
 
-        if (!string.IsNullOrEmpty(dto.Title))
-        {
-            query = query.Where(video => video.Title.Contains(dto.Title));
+            query = query.Where(video =>
+                EF.Functions.ILike(video.Title, $"%{searchTerm}%") ||
+                EF.Functions.ILike(video.Description, $"%{searchTerm}%")
+            );
         }
-        if (!string.IsNullOrEmpty(dto.Description))
-        {
-            query = query.Where(video => video.Description.Contains(dto.Description));
-        }
+
         if (!string.IsNullOrEmpty(dto.CreatorId))
         {
             query = query.Where(video => video.CreatorId == dto.CreatorId);

@@ -43,15 +43,14 @@ public class UserRepository : IUserRepository
     public async Task<List<User>> GetUsersByFilterAsync(UserFilterDto dto)
     {
         var query = _userManager.Users.AsQueryable();
-
-        if (!string.IsNullOrEmpty(dto.UserName))
+        if (!string.IsNullOrEmpty(dto.UserName) || !string.IsNullOrEmpty(dto.Email))
         {
-            query = query.Where(user => user.UserName != null && user.UserName.Contains(dto.UserName));
-        }
+            var searchTerm = dto.UserName ?? dto.Email;
 
-        if (!string.IsNullOrEmpty(dto.Email))
-        {
-            query = query.Where(user => user.Email != null && user.Email.Contains(dto.Email));
+            query = query.Where(user =>
+                (user.UserName != null && EF.Functions.ILike(user.UserName, $"%{searchTerm}%")) ||
+                (user.Email != null && EF.Functions.ILike(user.Email, $"%{searchTerm}%"))
+            );
         }
 
         return await query.ToListAsync();
