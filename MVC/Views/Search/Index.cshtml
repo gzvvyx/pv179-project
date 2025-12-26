@@ -1,0 +1,46 @@
+@model pv179.Models.SearchViewModel
+@{
+    ViewData["Title"] = "Search";
+}
+
+<div class="py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Search Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-4">Search</h1>
+            <p class="text-lg opacity-70">Find videos, playlists, and creators</p>
+        </div>
+
+        <!-- Search Form -->
+        <div class="card bg-base-100 shadow-xl mb-8">
+            <div class="card-body">
+                <form asp-action="All" method="get" class="space-y-4">
+                    <!-- Search Input -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">What are you looking for?</span>
+                        </label>
+                        <div class="join w-full">
+                            <input type="text" 
+                                   name="query" 
+                                   placeholder="Search for videos, playlists, or creators..." 
+                                   class="input input-bordered join-item w-full"
+                                   value="@Model.Query"
+                                   autofocus />
+                            <button type="submit" class="btn btn-primary join-item">
+                                <icon name="search" />
+                                Search
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        lucide.createIcons();
+    </script>
+}

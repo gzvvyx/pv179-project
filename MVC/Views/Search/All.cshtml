@@ -1,0 +1,207 @@
+@model pv179.Models.SearchAllResultsViewModel
+@{
+    ViewData["Title"] = $"Search results for \"{Model.Query}\"";
+}
+
+<div class="py-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Search Header with Results Count -->
+        <div class="mb-8">
+            <a asp-action="Index" asp-route-query="@Model.Query" class="btn btn-ghost btn-sm mb-4">
+                <icon name="arrow-left" />
+                Back to Search
+            </a>
+            <h1 class="text-4xl font-bold mb-2">Search Results</h1>
+            <p class="text-lg opacity-70">
+                Results for "<span class="font-semibold">@Model.Query</span>"
+            </p>
+            
+            <!-- Category Filter Tabs -->
+            <div class="tabs tabs-boxed mt-4 mb-2">
+                <a asp-action="All" asp-route-query="@Model.Query" class="tab tab-active">
+                    <icon name="layers" class="w-4 h-4 mr-2" />
+                    All
+                </a>
+                <a asp-action="Videos" asp-route-query="@Model.Query" class="tab">
+                    <icon name="video" class="w-4 h-4 mr-2" />
+                    Videos
+                </a>
+                <a asp-action="Playlists" asp-route-query="@Model.Query" class="tab">
+                    <icon name="list" class="w-4 h-4 mr-2" />
+                    Playlists
+                </a>
+                <a asp-action="Creators" asp-route-query="@Model.Query" class="tab">
+                    <icon name="users" class="w-4 h-4 mr-2" />
+                    Creators
+                </a>
+            </div>
+            
+            <div class="text-sm opacity-60 mt-2">
+                Found @(Model.Videos.Count + Model.Playlists.Count + Model.Creators.Count) results
+                (@Model.Videos.Count videos, @Model.Playlists.Count playlists, @Model.Creators.Count creators)
+            </div>
+        </div>
+
+        <!-- Videos Section -->
+        @if (Model.Videos.Any())
+        {
+            <div class="mb-12">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold flex items-center gap-2">
+                        <icon name="video" />
+                        Videos (@Model.Videos.Count)
+                    </h2>
+                    @if (Model.Videos.Count > 3)
+                    {
+                        <a asp-action="Videos" asp-route-query="@Model.Query" class="btn btn-sm btn-ghost">
+                            View All
+                            <icon name="arrow-right" />
+                        </a>
+                    }
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach (var video in Model.Videos.Take(6))
+                    {
+                        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                            <figure class="aspect-video bg-base-300">
+                                <img src="@video.ThumbnailUrl" alt="@video.Title" class="w-full h-full object-cover" />
+                            </figure>
+                            <div class="card-body">
+                                <h3 class="card-title text-base">@video.Title</h3>
+                                <p class="text-sm opacity-70 line-clamp-2">@video.Description</p>
+                                <div class="card-actions justify-between items-center mt-2">
+                                    <div class="text-xs opacity-60">
+                                        <icon name="user" class="w-3 h-3 inline" />
+                                        @video.CreatorId
+                                    </div>
+                                    <a href="@video.Url" target="_blank" class="btn btn-primary btn-sm">
+                                        <icon name="play" />
+                                        Watch
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Playlists Section -->
+        @if (Model.Playlists.Any())
+        {
+            <div class="mb-12">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold flex items-center gap-2">
+                        <icon name="list" />
+                        Playlists (@Model.Playlists.Count)
+                    </h2>
+                    @if (Model.Playlists.Count > 3)
+                    {
+                        <a asp-action="Playlists" asp-route-query="@Model.Query" class="btn btn-sm btn-ghost">
+                            View All
+                            <icon name="arrow-right" />
+                        </a>
+                    }
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach (var playlist in Model.Playlists.Take(6))
+                    {
+                        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                            <div class="card-body">
+                                <h3 class="card-title">
+                                    <icon name="list" class="w-5 h-5" />
+                                    @playlist.Name
+                                </h3>
+                                @if (!string.IsNullOrEmpty(playlist.Description))
+                                {
+                                    <p class="text-sm opacity-70 line-clamp-3">@playlist.Description</p>
+                                }
+                                <div class="card-actions justify-between items-center mt-2">
+                                    <div class="text-xs opacity-60">
+                                        <icon name="user" class="w-3 h-3 inline" />
+                                        @playlist.CreatorId
+                                    </div>
+                                    <button class="btn btn-primary btn-sm">
+                                        <icon name="external-link" />
+                                        Open
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Creators Section -->
+        @if (Model.Creators.Any())
+        {
+            <div class="mb-12">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold flex items-center gap-2">
+                        <icon name="users" />
+                        Creators (@Model.Creators.Count)
+                    </h2>
+                    @if (Model.Creators.Count > 3)
+                    {
+                        <a asp-action="Creators" asp-route-query="@Model.Query" class="btn btn-sm btn-ghost">
+                            View All
+                            <icon name="arrow-right" />
+                        </a>
+                    }
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    @foreach (var creator in Model.Creators.Take(8))
+                    {
+                        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                            <div class="card-body items-center text-center">
+                                <div class="avatar placeholder mb-2">
+                                    <div class="bg-neutral text-neutral-content rounded-full w-16">
+                                        <span class="text-2xl">@creator.UserName?.Substring(0, 1).ToUpper()</span>
+                                    </div>
+                                </div>
+                                <h3 class="card-title text-base">@creator.UserName</h3>
+                                @if (!string.IsNullOrEmpty(creator.Email))
+                                {
+                                    <p class="text-xs opacity-60">@creator.Email</p>
+                                }
+                                <div class="card-actions mt-2">
+                                    <button class="btn btn-primary btn-sm btn-block">
+                                        <icon name="user-plus" />
+                                        View Profile
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- No Results -->
+        @if (!Model.Videos.Any() && !Model.Playlists.Any() && !Model.Creators.Any())
+        {
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body items-center text-center py-12">
+                    <icon name="search-x" class="w-16 h-16 opacity-30 mb-4" />
+                    <h3 class="text-2xl font-bold mb-2">No results found</h3>
+                    <p class="opacity-70 mb-4">
+                        We couldn't find anything matching "<span class="font-semibold">@Model.Query</span>"
+                    </p>
+                    <div class="card-actions">
+                        <a asp-action="Index" class="btn btn-primary">
+                            <icon name="arrow-left" />
+                            Try a different search
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        lucide.createIcons();
+    </script>
+}
