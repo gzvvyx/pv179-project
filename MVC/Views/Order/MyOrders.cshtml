@@ -1,0 +1,75 @@
+@using DAL.Models.Enums
+@model List<OrderViewModel>
+
+@{
+    ViewData["Title"] = "My Orders";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">@ViewData["Title"]</h1>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            <icon name="info" size="24" />
+            <span>You don't have any orders yet.</span>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Creator</th>
+                        <th>Amount</th>
+                        <th>Payment Status</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model)
+                    {
+                        <tr>
+                            <td>@order.Id</td>
+                            <td>@order.CreatorUserName</td>
+                            <td>@order.Amount.ToString("C")</td>
+                            <td>
+                                @switch (order.Status)
+                                {
+                                    case OrderStatus.Pending:
+                                        <span class="badge badge-warning">Pending</span>
+                                        break;
+                                    case OrderStatus.Completed:
+                                        <span class="badge badge-success">Completed</span>
+                                        break;
+                                    case OrderStatus.Failed:
+                                        <span class="badge badge-error">Failed</span>
+                                        break;
+                                    default:
+                                        <span class="badge badge-ghost">@order.Status</span>
+                                        break;
+                                }
+                            </td>
+                            <td>@order.CreatedAt.ToLocalTime().ToString("g")</td>
+                            <td>
+                                <a asp-controller="Order" asp-action="Details" asp-route-id="@order.Id" class="btn btn-sm btn-primary">
+                                    <icon name="eye" />
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4">
+            <p class="text-sm text-gray-600">
+                Total orders: <strong>@Model.Count</strong>
+            </p>
+        </div>
+    }
+</div>

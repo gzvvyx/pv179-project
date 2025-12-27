@@ -56,6 +56,12 @@
                     @if (SignInManager.IsSignedIn(User))
                     {
                         <li>
+                            <a asp-area="" asp-controller="Order" asp-action="MyOrders" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Orders">
+                                <icon name="shopping-bag" />
+                                <span class="is-drawer-close:hidden">My Orders</span>
+                            </a>
+                        </li>
+                        <li>
                             <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post" class="w-full">
                                 <button type="submit" class="is-drawer-close:tooltip is-drawer-close:tooltip-right flex items-center gap-2" data-tip="Logout">
                                     <icon name="log-out" />

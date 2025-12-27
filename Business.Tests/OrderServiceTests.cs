@@ -155,8 +155,8 @@ public class OrderServiceTests
         Assert.Equal(OrderStatus.Pending, createdOrder.Status);
 
         Assert.Equal(createdOrder.Amount, orderDto!.Amount);
-        Assert.Equal(createdOrder.OrdererId, orderDto.OrdererId);
-        Assert.Equal(createdOrder.CreatorId, orderDto.CreatorId);
+        Assert.Equal(createdOrder.OrdererId, orderDto.Orderer.Id);
+        Assert.Equal(createdOrder.CreatorId, orderDto.Creator.Id);
         Assert.Equal(createdOrder.Status, orderDto.Status);
 
         Assert.True(orderDto.CreatedAt >= before);

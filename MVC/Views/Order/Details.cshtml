@@ -1,0 +1,111 @@
+@using DAL.Models.Enums
+@model OrderDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Order #{Model.Id}";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-4">
+        <a asp-controller="Order" asp-action="MyOrders" class="btn btn-ghost btn-sm">
+            <icon name="arrow-left" />
+            Back to My Orders
+        </a>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4">Order Details</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-lg mb-2">Order Information</h3>
+                    <div class="space-y-2">
+                        <div>
+                            <span class="text-gray-600">Order ID:</span>
+                            <span class="font-medium ml-2">#@Model.Id</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Amount:</span>
+                            <span class="font-medium ml-2 text-xl">@Model.Amount.ToString("C")</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Status:</span>
+                            @switch (Model.Status)
+                            {
+                                case OrderStatus.Pending:
+                                    <span class="badge badge-warning badge-lg ml-2">Pending</span>
+                                    break;
+                                case OrderStatus.Completed:
+                                    <span class="badge badge-success badge-lg ml-2">Completed</span>
+                                    break;
+                                case OrderStatus.Failed:
+                                    <span class="badge badge-error badge-lg ml-2">Failed</span>
+                                    break;
+                                default:
+                                    <span class="badge badge-ghost badge-lg ml-2">@Model.Status</span>
+                                    break;
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold text-lg mb-2">Parties</h3>
+                    <div class="space-y-2">
+                        <div>
+                            <span class="text-gray-600">Creator:</span>
+                            <span class="font-medium ml-2">@Model.CreatorUserName</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Orderer:</span>
+                            <span class="font-medium ml-2">@Model.OrdererUserName</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold text-lg mb-2">Timeline</h3>
+                    <div class="space-y-2">
+                        <div>
+                            <span class="text-gray-600">Created:</span>
+                            <span class="font-medium ml-2">@Model.CreatedAt.ToLocalTime().ToString("g")</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Last Updated:</span>
+                            <span class="font-medium ml-2">@Model.UpdatedAt.ToLocalTime().ToString("g")</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.Status == OrderStatus.Pending)
+                {
+                    <div class="md:col-span-2">
+                        <div class="alert alert-warning">
+                            <icon name="alert-triangle" size="24" />
+                            <span>This order is pending and awaiting payment confirmation.</span>
+                        </div>
+                    </div>
+                }
+                else if (Model.Status == OrderStatus.Failed)
+                {
+                    <div class="md:col-span-2">
+                        <div class="alert alert-error">
+                            <icon name="x-circle" size="24" />
+                            <span>This payment failed. Please try again or contact support.</span>
+                        </div>
+                    </div>
+                }
+                else if (Model.Status == OrderStatus.Completed)
+                {
+                    <div class="md:col-span-2">
+                        <div class="alert alert-success">
+                            <icon name="check-circle" size="24" />
+                            <span>Payment completed successfully!</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
