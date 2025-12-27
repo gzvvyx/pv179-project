@@ -43,7 +43,6 @@ public class UserRepository : IUserRepository
     {
         var query = _userManager.Users.AsQueryable();
 
-        // Apply search filters
         if (!string.IsNullOrEmpty(dto.UserName) || !string.IsNullOrEmpty(dto.Email))
         {
             var searchTerm = dto.UserName ?? dto.Email;
@@ -53,18 +52,16 @@ public class UserRepository : IUserRepository
             );
         }
 
-        // Apply sorting
         query = dto.SortBy?.ToLower() switch
         {
-            "email" => dto.SortDescending 
-                ? query.OrderByDescending(u => u.Email) 
+            "email" => dto.SortDescending
+                ? query.OrderByDescending(u => u.Email)
                 : query.OrderBy(u => u.Email),
-            _ => dto.SortDescending 
-                ? query.OrderByDescending(u => u.UserName) 
+            _ => dto.SortDescending
+                ? query.OrderByDescending(u => u.UserName)
                 : query.OrderBy(u => u.UserName)
         };
 
-        // Apply pagination
         query = query
             .Skip((dto.PageNumber - 1) * dto.PageSize)
             .Take(dto.PageSize);
@@ -76,7 +73,6 @@ public class UserRepository : IUserRepository
     {
         var query = _userManager.Users.AsQueryable();
 
-        // Apply same filters as GetByFilterAsync (without pagination)
         if (!string.IsNullOrEmpty(dto.UserName) || !string.IsNullOrEmpty(dto.Email))
         {
             var searchTerm = dto.UserName ?? dto.Email;

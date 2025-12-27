@@ -64,7 +64,6 @@ namespace Infra.Repository
                 .AsNoTracking()
                 .AsQueryable();
 
-            // Apply search filters
             if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
             {
                 var searchTerm = dto.Name ?? dto.Description;
@@ -79,7 +78,6 @@ namespace Infra.Repository
                 query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
             }
 
-            // Apply date filters
             if (dto.FromDate.HasValue)
             {
                 query = query.Where(p => p.CreatedAt >= dto.FromDate.Value);
@@ -90,21 +88,19 @@ namespace Infra.Repository
                 query = query.Where(p => p.CreatedAt <= dto.ToDate.Value);
             }
 
-            // Apply sorting
             query = dto.SortBy?.ToLower() switch
             {
-                "name" => dto.SortDescending 
-                    ? query.OrderByDescending(p => p.Name) 
+                "name" => dto.SortDescending
+                    ? query.OrderByDescending(p => p.Name)
                     : query.OrderBy(p => p.Name),
-                "updatedat" => dto.SortDescending 
-                    ? query.OrderByDescending(p => p.UpdatedAt) 
+                "updatedat" => dto.SortDescending
+                    ? query.OrderByDescending(p => p.UpdatedAt)
                     : query.OrderBy(p => p.UpdatedAt),
-                _ => dto.SortDescending 
-                    ? query.OrderByDescending(p => p.CreatedAt) 
+                _ => dto.SortDescending
+                    ? query.OrderByDescending(p => p.CreatedAt)
                     : query.OrderBy(p => p.CreatedAt)
             };
 
-            // Apply pagination
             query = query
                 .Skip((dto.PageNumber - 1) * dto.PageSize)
                 .Take(dto.PageSize);
@@ -116,7 +112,6 @@ namespace Infra.Repository
         {
             var query = _dbContext.Playlists.AsQueryable();
 
-            // Apply same filters as GetByFilterAsync (without pagination)
             if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
             {
                 var searchTerm = dto.Name ?? dto.Description;

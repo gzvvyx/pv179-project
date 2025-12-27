@@ -60,7 +60,6 @@ public class SearchController : Controller
             PageSize = pageSize
         };
 
-        // Apply date filters for videos
         if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var parsedFromDate))
         {
             videoFilter.FromDate = parsedFromDate;
@@ -70,13 +69,12 @@ public class SearchController : Controller
             videoFilter.ToDate = parsedToDate;
         }
 
-        // Apply content sort for videos (format: "Field-Direction")
         if (!string.IsNullOrEmpty(contentSort))
         {
             var parts = contentSort.Split('-');
             if (parts.Length == 2)
             {
-                videoFilter.SortBy = parts[0]; // e.g., "Title", "CreatedAt", "UpdatedAt"
+                videoFilter.SortBy = parts[0];
                 videoFilter.SortDescending = parts[1] == "Desc";
             }
         }
@@ -88,7 +86,6 @@ public class SearchController : Controller
             PageSize = pageSize
         };
 
-        // Apply date filters for playlists
         if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var pFromDate))
         {
             playlistFilter.FromDate = pFromDate;
@@ -98,14 +95,12 @@ public class SearchController : Controller
             playlistFilter.ToDate = pToDate;
         }
 
-        // Apply content sort for playlists (same as videos, but uses "Name" instead of "Title")
         if (!string.IsNullOrEmpty(contentSort))
         {
             var parts = contentSort.Split('-');
             if (parts.Length == 2)
             {
                 var sortField = parts[0];
-                // Map "Title" to "Name" for playlists
                 if (sortField == "Title")
                 {
                     sortField = "Name";
@@ -122,13 +117,12 @@ public class SearchController : Controller
             PageSize = pageSize
         };
 
-        // Apply creator sort (format: "UserName-Asc" or "UserName-Desc")
         if (!string.IsNullOrEmpty(creatorSort))
         {
             var parts = creatorSort.Split('-');
             if (parts.Length == 2)
             {
-                userFilter.SortBy = parts[0]; // "UserName"
+                userFilter.SortBy = parts[0];
                 userFilter.SortDescending = parts[1] == "Desc";
             }
         }

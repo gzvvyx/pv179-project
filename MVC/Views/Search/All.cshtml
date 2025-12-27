@@ -3,20 +3,16 @@
     ViewData["Title"] = $"Search results for \"{Model.Query}\"";
     ViewData["ActiveCategory"] = "all";
     
-    // Get filter state from query string
     var showVideos = string.IsNullOrEmpty(Context.Request.Query["showVideos"]) || Context.Request.Query["showVideos"] == "true";
     var showPlaylists = string.IsNullOrEmpty(Context.Request.Query["showPlaylists"]) || Context.Request.Query["showPlaylists"] == "true";
     var showCreators = string.IsNullOrEmpty(Context.Request.Query["showCreators"]) || Context.Request.Query["showCreators"] == "true";
     
-    // Unified filters
     var fromDate = Context.Request.Query["fromDate"].ToString();
     var toDate = Context.Request.Query["toDate"].ToString();
     
-    // Sort options
     var contentSort = Context.Request.Query["contentSort"].ToString();
     var creatorSort = Context.Request.Query["creatorSort"].ToString();
     
-    // Parse content sort (default: CreatedAt-Desc)
     var contentSortField = "CreatedAt";
     var contentSortDir = "Desc";
     if (!string.IsNullOrEmpty(contentSort))
@@ -29,7 +25,6 @@
         }
     }
     
-    // Parse creator sort (default: UserName-Asc)
     var creatorSortDir = "Asc";
     if (!string.IsNullOrEmpty(creatorSort))
     {
@@ -40,7 +35,6 @@
         }
     }
     
-    // Total counts
     var totalCount = Model.Videos.TotalCount + Model.Playlists.TotalCount + Model.Creators.TotalCount;
 }
 
@@ -342,7 +336,6 @@
     <script>
         lucide.createIcons();
         
-        // Update hidden fields when checkboxes change
         function updateHiddenFields() {
             document.getElementById('showVideosHidden').value = 
                 document.getElementById('showVideos').checked.toString();
@@ -352,19 +345,15 @@
                 document.getElementById('showCreators').checked.toString();
         }
         
-        // Update sort fields to combine field and direction into single hidden inputs
         function updateSortFields() {
-            // Content sort (videos & playlists)
             const contentField = document.querySelector('input[name="contentSortField"]:checked')?.value || 'CreatedAt';
             const contentDir = document.querySelector('input[name="contentSortDir"]:checked')?.value || 'Desc';
             document.getElementById('contentSortHidden').value = contentField + '-' + contentDir;
             
-            // Creator sort
             const creatorDir = document.querySelector('input[name="creatorSortDir"]:checked')?.value || 'Asc';
             document.getElementById('creatorSortHidden').value = 'UserName-' + creatorDir;
         }
         
-        // Initialize on page load
         updateHiddenFields();
         updateSortFields();
     </script>

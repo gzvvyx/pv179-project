@@ -63,7 +63,6 @@ public class VideoRepository : IVideoRepository
             .AsNoTracking()
             .AsQueryable();
 
-        // Apply search filters
         if (!string.IsNullOrEmpty(dto.Title) || !string.IsNullOrEmpty(dto.Description))
         {
             var searchTerm = dto.Title ?? dto.Description;
@@ -78,7 +77,6 @@ public class VideoRepository : IVideoRepository
             query = query.Where(video => video.CreatorId == dto.CreatorId);
         }
 
-        // Apply date filters
         if (dto.FromDate.HasValue)
         {
             query = query.Where(v => v.CreatedAt >= dto.FromDate.Value);
@@ -89,7 +87,6 @@ public class VideoRepository : IVideoRepository
             query = query.Where(v => v.CreatedAt <= dto.ToDate.Value);
         }
 
-        // Apply sorting
         query = dto.SortBy?.ToLower() switch
         {
             "title" => dto.SortDescending
@@ -103,7 +100,6 @@ public class VideoRepository : IVideoRepository
                 : query.OrderBy(v => v.CreatedAt)
         };
 
-        // Apply pagination
         query = query
             .Skip((dto.PageNumber - 1) * dto.PageSize)
             .Take(dto.PageSize);
@@ -115,7 +111,6 @@ public class VideoRepository : IVideoRepository
     {
         var query = _dbContext.Videos.AsQueryable();
 
-        // Apply same filters as GetByFilterAsync (without pagination)
         if (!string.IsNullOrEmpty(dto.Title) || !string.IsNullOrEmpty(dto.Description))
         {
             var searchTerm = dto.Title ?? dto.Description;
