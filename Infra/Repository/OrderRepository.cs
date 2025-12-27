@@ -28,6 +28,16 @@ public class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.Id == id);
     }
 
+    public Task<List<Order>> GetByOrdererIdAsync(string ordererId)
+    {
+        return _dbContext.Orders
+            .Include(order => order.Creator)
+            .Include(order => order.Orderer)
+            .Where(o => o.OrdererId == ordererId)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task CreateAsync(Order order)
     {
         if (order.Creator is not null)
