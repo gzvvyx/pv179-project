@@ -1,3 +1,6 @@
+using Business.DTOs;
+using Infra.DTOs;
+
 namespace pv179.Models;
 
 public class SearchViewModel
@@ -16,7 +19,7 @@ public class SearchResultsViewModel<T>
 public class SearchAllResultsViewModel
 {
     public string Query { get; set; } = string.Empty;
-    public List<Business.DTOs.VideoDto> Videos { get; set; } = new();
-    public List<Business.DTOs.PlaylistDto> Playlists { get; set; } = new();
-    public List<Business.DTOs.UserDto> Creators { get; set; } = new();
+    public PagedResultDto<VideoDto> Videos { get; set; } = new() { Items = new(), TotalCount = 0, PageNumber = 1, PageSize = 12 };
+    public PagedResultDto<PlaylistDto> Playlists { get; set; } = new() { Items = new(), TotalCount = 0, PageNumber = 1, PageSize = 12 };
+    public PagedResultDto<UserDto> Creators { get; set; } = new() { Items = new(), TotalCount = 0, PageNumber = 1, PageSize = 12 };
 }
