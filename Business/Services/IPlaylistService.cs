@@ -12,5 +12,6 @@ namespace Business.Services
         Task<(IdentityResult Result, PlaylistDto? Playlist)> UpdateAsync(int id, PlaylistUpdateDto dto);
         Task<IdentityResult> DeleteAsync(int id);
         Task<List<PlaylistDto>> GetByFilterAsync(PlaylistFilterDto dto);
+        Task<PagedResultDto<PlaylistDto>> GetByFilterPagedAsync(PlaylistFilterDto dto);
     }
 }

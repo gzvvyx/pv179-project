@@ -34,7 +34,7 @@ namespace Business.Services
 
         public async Task<(IdentityResult Result, CommentDto? Comment)> CreateAsync(CommentCreateDto dto)
         {
-            var creator = await _userRepository.GetUserByIdAsync(dto.AuthorId);
+            var creator = await _userRepository.GetByIdAsync(dto.AuthorId);
             if (creator is null)
             {
                 return (IdentityResult.Failed(new IdentityError

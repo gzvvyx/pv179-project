@@ -12,5 +12,6 @@ public interface IVideoService
     Task<(IdentityResult Result, VideoDto? Video)> UpdateAsync(int id, VideoUpdateDto dto);
     Task<IdentityResult> DeleteAsync(int id);
     Task<List<VideoDto>> GetByFilterAsync(VideoFilterDto dto);
+    Task<PagedResultDto<VideoDto>> GetByFilterPagedAsync(VideoFilterDto dto);
 }
 

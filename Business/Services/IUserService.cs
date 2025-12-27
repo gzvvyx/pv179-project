@@ -12,4 +12,5 @@ public interface IUserService
     Task<(IdentityResult Result, UserDto? User)> UpdateAsync(string id, UserUpdateDto dto);
     Task<IdentityResult> DeleteAsync(string id);
     Task<List<UserDto>> GetByFilterAsync(UserFilterDto dto);
+    Task<PagedResultDto<UserDto>> GetByFilterPagedAsync(UserFilterDto dto);
 }

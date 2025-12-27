@@ -33,7 +33,7 @@ public class VideoService : IVideoService
 
     public async Task<(IdentityResult Result, VideoDto? Video)> CreateAsync(VideoCreateDto dto)
     {
-        var creator = await _userRepository.GetUserByIdAsync(dto.CreatorId);
+        var creator = await _userRepository.GetByIdAsync(dto.CreatorId);
         if (creator is null)
         {
             return (IdentityResult.Failed(new IdentityError
@@ -58,7 +58,7 @@ public class VideoService : IVideoService
             UpdatedAt = timestamp
         };
 
-        await _videoRepository.AddAsync(video);
+        await _videoRepository.CreateAsync(video);
 
         return (IdentityResult.Success, _mapper.Map(video));
     }
@@ -78,7 +78,7 @@ public class VideoService : IVideoService
 
         if (!string.IsNullOrWhiteSpace(dto.CreatorId) && !string.Equals(video.CreatorId, dto.CreatorId, StringComparison.Ordinal))
         {
-            var newCreator = await _userRepository.GetUserByIdAsync(dto.CreatorId);
+            var newCreator = await _userRepository.GetByIdAsync(dto.CreatorId);
             if (newCreator is null)
             {
                 return (IdentityResult.Failed(new IdentityError
@@ -140,7 +140,20 @@ public class VideoService : IVideoService
     public async Task<List<VideoDto>> GetByFilterAsync(VideoFilterDto dto)
     {
         var videos = await _videoRepository.GetByFilterAsync(dto);
-
         return _mapper.Map(videos);
+    }
+
+    public async Task<PagedResultDto<VideoDto>> GetByFilterPagedAsync(VideoFilterDto dto)
+    {
+        var videos = await _videoRepository.GetByFilterAsync(dto);
+        var totalCount = await _videoRepository.GetFilteredCountAsync(dto);
+
+        return new PagedResultDto<VideoDto>
+        {
+            Items = _mapper.Map(videos),
+            TotalCount = totalCount,
+            PageNumber = dto.PageNumber,
+            PageSize = dto.PageSize
+        };
     }
 }
