@@ -115,7 +115,7 @@ public class VideoServiceTests
         Assert.Equal(dto.Url, created.Url);
         Assert.Equal(dto.ThumbnailUrl, created.ThumbnailUrl);
 
-        Assert.Equal(created.CreatorId, video!.CreatorId);
+        Assert.Equal(created.CreatorId, video!.Creator.Id);
         Assert.Equal(created.Title, video.Title);
         Assert.Equal(created.Description, video.Description);
         Assert.Equal(created.Url, video.Url);
@@ -279,7 +279,7 @@ public class VideoServiceTests
         Assert.Equal("https://e.com/2.jpg", saved.ThumbnailUrl);
         Assert.True(saved.UpdatedAt >= saved.CreatedAt);
 
-        Assert.Equal(saved.CreatorId, dto!.CreatorId);
+        Assert.Equal(saved.CreatorId, dto!.Creator.Id);
         Assert.Equal(saved.Title, dto.Title);
         Assert.Equal(saved.Description, dto.Description);
         Assert.Equal(saved.Url, dto.Url);
