@@ -31,7 +31,7 @@ public class UserServiceTests
             CreateUser("u1", "alice", "a@example.com"),
             CreateUser("u2", "bob", null)
         };
-        repo.Setup(r => r.GetAllUsers()).ReturnsAsync(users);
+        repo.Setup(r => r.GetAllAsync()).ReturnsAsync(users);
 
         var result = await service.GetAllAsync();
 
@@ -39,7 +39,7 @@ public class UserServiceTests
         Assert.Contains(result, u => u.Id == "u1" && u.UserName == "alice" && u.Email == "a@example.com");
         Assert.Contains(result, u => u.Id == "u2" && u.UserName == "bob" && u.Email == null);
 
-        repo.Verify(r => r.GetAllUsers(), Times.Once);
+        repo.Verify(r => r.GetAllAsync(), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
@@ -49,12 +49,12 @@ public class UserServiceTests
         var repo = new Mock<IUserRepository>(MockBehavior.Strict);
         var service = new UserService(repo.Object);
 
-        repo.Setup(r => r.GetUserByIdAsync("x")).ReturnsAsync((User?)null);
+        repo.Setup(r => r.GetByIdAsync("x")).ReturnsAsync((User?)null);
 
         var result = await service.GetByIdAsync("x");
 
         Assert.Null(result);
-        repo.Verify(r => r.GetUserByIdAsync("x"), Times.Once);
+        repo.Verify(r => r.GetByIdAsync("x"), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
@@ -65,7 +65,7 @@ public class UserServiceTests
         var service = new UserService(repo.Object);
 
         var user = CreateUser("id-7", "sue", "sue@example.com");
-        repo.Setup(r => r.GetUserByIdAsync("id-7")).ReturnsAsync(user);
+        repo.Setup(r => r.GetByIdAsync("id-7")).ReturnsAsync(user);
 
         var dto = await service.GetByIdAsync("id-7");
 
@@ -74,7 +74,7 @@ public class UserServiceTests
         Assert.Equal(user.UserName, dto.UserName);
         Assert.Equal(user.Email, dto.Email);
 
-        repo.Verify(r => r.GetUserByIdAsync("id-7"), Times.Once);
+        repo.Verify(r => r.GetByIdAsync("id-7"), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
@@ -93,7 +93,7 @@ public class UserServiceTests
 
         User? created = null;
         string? passedPassword = null;
-        repo.Setup(r => r.CreateUserAsync(It.IsAny<User>(), It.IsAny<string>()))
+        repo.Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
             .Callback<User, string>((u, p) => { created = u; passedPassword = p; })
             .ReturnsAsync(IdentityResult.Success);
 
@@ -109,7 +109,7 @@ public class UserServiceTests
         Assert.Equal(created.UserName, userDto.UserName);
         Assert.Equal(created.Email, userDto.Email);
 
-        repo.Verify(r => r.CreateUserAsync(It.IsAny<User>(), It.IsAny<string>()), Times.Once);
+        repo.Verify(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<string>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
@@ -127,7 +127,7 @@ public class UserServiceTests
         };
 
         var failure = IdentityResult.Failed(new IdentityError { Code = "DuplicateEmail" });
-        repo.Setup(r => r.CreateUserAsync(It.IsAny<User>(), It.IsAny<string>()))
+        repo.Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
             .ReturnsAsync(failure);
 
         var (result, user) = await service.CreateAsync(dto);
@@ -137,7 +137,7 @@ public class UserServiceTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("DuplicateEmail", error.Code);
 
-        repo.Verify(r => r.CreateUserAsync(It.IsAny<User>(), It.IsAny<string>()), Times.Once);
+        repo.Verify(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<string>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
@@ -147,7 +147,7 @@ public class UserServiceTests
         var repo = new Mock<IUserRepository>(MockBehavior.Strict);
         var service = new UserService(repo.Object);
 
-        repo.Setup(r => r.GetUserByIdAsync("missing")).ReturnsAsync((User?)null);
+        repo.Setup(r => r.GetByIdAsync("missing")).ReturnsAsync((User?)null);
 
         var (result, user) = await service.UpdateAsync("missing", new UserUpdateDto { UserName = "x" });
 
@@ -156,7 +156,7 @@ public class UserServiceTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("UserNotFound", error.Code);
 
-        repo.Verify(r => r.GetUserByIdAsync("missing"), Times.Once);
+        repo.Verify(r => r.GetByIdAsync("missing"), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
@@ -167,10 +167,10 @@ public class UserServiceTests
         var service = new UserService(repo.Object);
 
         var existing = CreateUser("id-1", "old", "old@example.com");
-        repo.Setup(r => r.GetUserByIdAsync("id-1")).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync("id-1")).ReturnsAsync(existing);
 
         var failure = IdentityResult.Failed(new IdentityError { Code = "UpdateFailed" });
-        repo.Setup(r => r.UpdateUserAsync(It.IsAny<User>())).ReturnsAsync(failure);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<User>())).ReturnsAsync(failure);
 
         var (result, dto) = await service.UpdateAsync("id-1", new UserUpdateDto
         {
@@ -183,8 +183,8 @@ public class UserServiceTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("UpdateFailed", error.Code);
 
-        repo.Verify(r => r.GetUserByIdAsync("id-1"), Times.Once);
-        repo.Verify(r => r.UpdateUserAsync(It.IsAny<User>()), Times.Once);
+        repo.Verify(r => r.GetByIdAsync("id-1"), Times.Once);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
@@ -195,8 +195,8 @@ public class UserServiceTests
         var service = new UserService(repo.Object);
 
         var existing = CreateUser("id-2", "old-name", "old@example.com");
-        repo.Setup(r => r.GetUserByIdAsync("id-2")).ReturnsAsync(existing);
-        repo.Setup(r => r.UpdateUserAsync(It.IsAny<User>()))
+        repo.Setup(r => r.GetByIdAsync("id-2")).ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<User>()))
             .ReturnsAsync(IdentityResult.Success);
 
         var (result, dto) = await service.UpdateAsync("id-2", new UserUpdateDto
@@ -211,8 +211,8 @@ public class UserServiceTests
         Assert.Equal("new-name", dto.UserName);
         Assert.Equal("new@example.com", dto.Email);
 
-        repo.Verify(r => r.GetUserByIdAsync("id-2"), Times.Once);
-        repo.Verify(r => r.UpdateUserAsync(It.IsAny<User>()), Times.Once);
+        repo.Verify(r => r.GetByIdAsync("id-2"), Times.Once);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
@@ -222,7 +222,7 @@ public class UserServiceTests
         var repo = new Mock<IUserRepository>(MockBehavior.Strict);
         var service = new UserService(repo.Object);
 
-        repo.Setup(r => r.GetUserByIdAsync("gone")).ReturnsAsync((User?)null);
+        repo.Setup(r => r.GetByIdAsync("gone")).ReturnsAsync((User?)null);
 
         var result = await service.DeleteAsync("gone");
 
@@ -230,7 +230,7 @@ public class UserServiceTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("UserNotFound", error.Code);
 
-        repo.Verify(r => r.GetUserByIdAsync("gone"), Times.Once);
+        repo.Verify(r => r.GetByIdAsync("gone"), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 
@@ -241,14 +241,14 @@ public class UserServiceTests
         var service = new UserService(repo.Object);
 
         var user = CreateUser("id-x", "x");
-        repo.Setup(r => r.GetUserByIdAsync("id-x")).ReturnsAsync(user);
-        repo.Setup(r => r.DeleteUserAsync(user)).ReturnsAsync(IdentityResult.Success);
+        repo.Setup(r => r.GetByIdAsync("id-x")).ReturnsAsync(user);
+        repo.Setup(r => r.DeleteAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var resultOk = await service.DeleteAsync("id-x");
         Assert.True(resultOk.Succeeded);
 
-        repo.Verify(r => r.GetUserByIdAsync("id-x"), Times.Once);
-        repo.Verify(r => r.DeleteUserAsync(user), Times.Once);
+        repo.Verify(r => r.GetByIdAsync("id-x"), Times.Once);
+        repo.Verify(r => r.DeleteAsync(user), Times.Once);
         repo.VerifyNoOtherCalls();
     }
 }
