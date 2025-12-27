@@ -1,0 +1,29 @@
+@model string
+
+@{
+    var activeCategory = ViewData["ActiveCategory"]?.ToString() ?? "all";
+}
+
+<!-- Category Filter Tabs -->
+<div class="flex flex-wrap gap-2 mt-4 mb-2">
+    <a asp-action="All" asp-route-query="@Model" 
+       class="btn btn-sm @(activeCategory == "all" ? "btn-primary" : "btn-outline")">
+        <icon name="layers" class="w-4 h-4 mr-1" />
+        All
+    </a>
+    <a asp-action="Videos" asp-route-query="@Model" 
+       class="btn btn-sm @(activeCategory == "videos" ? "btn-primary" : "btn-outline")">
+        <icon name="video" class="w-4 h-4 mr-1" />
+        Videos
+    </a>
+    <a asp-action="Playlists" asp-route-query="@Model" 
+       class="btn btn-sm @(activeCategory == "playlists" ? "btn-primary" : "btn-outline")">
+        <icon name="list" class="w-4 h-4 mr-1" />
+        Playlists
+    </a>
+    <a asp-action="Creators" asp-route-query="@Model" 
+       class="btn btn-sm @(activeCategory == "creators" ? "btn-primary" : "btn-outline")">
+        <icon name="users" class="w-4 h-4 mr-1" />
+        Creators
+    </a>
+</div>

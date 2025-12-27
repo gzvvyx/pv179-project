@@ -1,0 +1,22 @@
+@using Business.DTOs
+@model VideoDto
+
+<div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+    <figure class="aspect-video bg-base-300">
+        <img src="@Model.ThumbnailUrl" alt="@Model.Title" class="w-full h-full object-cover" />
+    </figure>
+    <div class="card-body">
+        <h3 class="card-title text-base">@Model.Title</h3>
+        <p class="text-sm opacity-70 line-clamp-2">@Model.Description</p>
+        <div class="card-actions justify-between items-center mt-2">
+            <div class="text-xs opacity-60">
+                <icon name="user" class="w-3 h-3 inline" />
+                @Model.CreatorId
+            </div>
+            <a href="@Model.Url" target="_blank" class="btn btn-primary btn-sm">
+                <icon name="play" />
+                Watch
+            </a>
+        </div>
+    </div>
+</div>

@@ -1,6 +1,7 @@
 @model pv179.Models.SearchAllResultsViewModel
 @{
     ViewData["Title"] = $"Search results for \"{Model.Query}\"";
+    ViewData["ActiveCategory"] = "all";
 }
 
 <div class="py-8">
@@ -16,25 +17,7 @@
                 Results for "<span class="font-semibold">@Model.Query</span>"
             </p>
             
-            <!-- Category Filter Tabs -->
-            <div class="tabs tabs-boxed mt-4 mb-2">
-                <a asp-action="All" asp-route-query="@Model.Query" class="tab tab-active">
-                    <icon name="layers" class="w-4 h-4 mr-2" />
-                    All
-                </a>
-                <a asp-action="Videos" asp-route-query="@Model.Query" class="tab">
-                    <icon name="video" class="w-4 h-4 mr-2" />
-                    Videos
-                </a>
-                <a asp-action="Playlists" asp-route-query="@Model.Query" class="tab">
-                    <icon name="list" class="w-4 h-4 mr-2" />
-                    Playlists
-                </a>
-                <a asp-action="Creators" asp-route-query="@Model.Query" class="tab">
-                    <icon name="users" class="w-4 h-4 mr-2" />
-                    Creators
-                </a>
-            </div>
+            <partial name="_CategoryTabs" model="Model.Query" />
             
             <div class="text-sm opacity-60 mt-2">
                 Found @(Model.Videos.Count + Model.Playlists.Count + Model.Creators.Count) results
@@ -62,25 +45,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach (var video in Model.Videos.Take(6))
                     {
-                        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                            <figure class="aspect-video bg-base-300">
-                                <img src="@video.ThumbnailUrl" alt="@video.Title" class="w-full h-full object-cover" />
-                            </figure>
-                            <div class="card-body">
-                                <h3 class="card-title text-base">@video.Title</h3>
-                                <p class="text-sm opacity-70 line-clamp-2">@video.Description</p>
-                                <div class="card-actions justify-between items-center mt-2">
-                                    <div class="text-xs opacity-60">
-                                        <icon name="user" class="w-3 h-3 inline" />
-                                        @video.CreatorId
-                                    </div>
-                                    <a href="@video.Url" target="_blank" class="btn btn-primary btn-sm">
-                                        <icon name="play" />
-                                        Watch
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                        <partial name="_VideoCard" model="video" />
                     }
                 </div>
             </div>
@@ -106,28 +71,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach (var playlist in Model.Playlists.Take(6))
                     {
-                        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                            <div class="card-body">
-                                <h3 class="card-title">
-                                    <icon name="list" class="w-5 h-5" />
-                                    @playlist.Name
-                                </h3>
-                                @if (!string.IsNullOrEmpty(playlist.Description))
-                                {
-                                    <p class="text-sm opacity-70 line-clamp-3">@playlist.Description</p>
-                                }
-                                <div class="card-actions justify-between items-center mt-2">
-                                    <div class="text-xs opacity-60">
-                                        <icon name="user" class="w-3 h-3 inline" />
-                                        @playlist.CreatorId
-                                    </div>
-                                    <button class="btn btn-primary btn-sm">
-                                        <icon name="external-link" />
-                                        Open
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <partial name="_PlaylistCard" model="playlist" />
                     }
                 </div>
             </div>
@@ -153,26 +97,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     @foreach (var creator in Model.Creators.Take(8))
                     {
-                        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
-                            <div class="card-body items-center text-center">
-                                <div class="avatar placeholder mb-2">
-                                    <div class="bg-neutral text-neutral-content rounded-full w-16">
-                                        <span class="text-2xl">@creator.UserName?.Substring(0, 1).ToUpper()</span>
-                                    </div>
-                                </div>
-                                <h3 class="card-title text-base">@creator.UserName</h3>
-                                @if (!string.IsNullOrEmpty(creator.Email))
-                                {
-                                    <p class="text-xs opacity-60">@creator.Email</p>
-                                }
-                                <div class="card-actions mt-2">
-                                    <button class="btn btn-primary btn-sm btn-block">
-                                        <icon name="user-plus" />
-                                        View Profile
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <partial name="_CreatorCard" model="creator" />
                     }
                 </div>
             </div>
