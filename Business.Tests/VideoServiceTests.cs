@@ -62,7 +62,7 @@ public class VideoServiceTests
             ThumbnailUrl = "https://example.com/t.jpg"
         };
 
-        userRepo.Setup(r => r.GetUserByIdAsync(dto.CreatorId))
+        userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync((User?)null);
 
         var (result, video) = await service.CreateAsync(dto);
@@ -72,7 +72,7 @@ public class VideoServiceTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("CreatorNotFound", error.Code);
 
-        userRepo.Verify(r => r.GetUserByIdAsync(dto.CreatorId), Times.Once);
+        userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
         userRepo.VerifyNoOtherCalls();
         videoRepo.VerifyNoOtherCalls();
     }
@@ -93,11 +93,11 @@ public class VideoServiceTests
             ThumbnailUrl = "https://example.com/t.jpg"
         };
 
-        userRepo.Setup(r => r.GetUserByIdAsync(dto.CreatorId))
+        userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync(CreateUser(dto.CreatorId));
 
         Video? created = null;
-        videoRepo.Setup(r => r.AddAsync(It.IsAny<Video>()))
+        videoRepo.Setup(r => r.CreateAsync(It.IsAny<Video>()))
             .Callback<Video>(v => created = v)
             .Returns(Task.CompletedTask);
 
@@ -115,7 +115,7 @@ public class VideoServiceTests
         Assert.Equal(dto.Url, created.Url);
         Assert.Equal(dto.ThumbnailUrl, created.ThumbnailUrl);
 
-        Assert.Equal(created.CreatorId, video!.CreatorId);
+        Assert.Equal(created.CreatorId, video!.Creator.Id);
         Assert.Equal(created.Title, video.Title);
         Assert.Equal(created.Description, video.Description);
         Assert.Equal(created.Url, video.Url);
@@ -123,8 +123,8 @@ public class VideoServiceTests
         Assert.True(video.CreatedAt >= before);
         Assert.True(video.UpdatedAt >= video.CreatedAt);
 
-        userRepo.Verify(r => r.GetUserByIdAsync(dto.CreatorId), Times.Once);
-        videoRepo.Verify(r => r.AddAsync(It.IsAny<Video>()), Times.Once);
+        userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
+        videoRepo.Verify(r => r.CreateAsync(It.IsAny<Video>()), Times.Once);
         userRepo.VerifyNoOtherCalls();
         videoRepo.VerifyNoOtherCalls();
     }
@@ -224,7 +224,7 @@ public class VideoServiceTests
         var existing = CreateVideo(9, "c-old", "t", "d", "https://e.com/v", "https://e.com/t.jpg");
         videoRepo.Setup(r => r.GetByIdAsync(9)).ReturnsAsync(existing);
 
-        userRepo.Setup(r => r.GetUserByIdAsync("c-new")).ReturnsAsync((User?)null);
+        userRepo.Setup(r => r.GetByIdAsync("c-new")).ReturnsAsync((User?)null);
 
         var (result, updated) = await service.UpdateAsync(9, new VideoUpdateDto { CreatorId = "c-new" });
 
@@ -234,7 +234,7 @@ public class VideoServiceTests
         Assert.Equal("CreatorNotFound", error.Code);
 
         videoRepo.Verify(r => r.GetByIdAsync(9), Times.Once);
-        userRepo.Verify(r => r.GetUserByIdAsync("c-new"), Times.Once);
+        userRepo.Verify(r => r.GetByIdAsync("c-new"), Times.Once);
         videoRepo.VerifyNoOtherCalls();
         userRepo.VerifyNoOtherCalls();
     }
@@ -249,7 +249,7 @@ public class VideoServiceTests
         var existing = CreateVideo(12, "c1", "t1", "d1", "https://e.com/1", "https://e.com/1.jpg", DateTime.UtcNow.AddHours(-2), DateTime.UtcNow.AddHours(-1));
         videoRepo.Setup(r => r.GetByIdAsync(12)).ReturnsAsync(existing);
 
-        userRepo.Setup(r => r.GetUserByIdAsync("c2"))
+        userRepo.Setup(r => r.GetByIdAsync("c2"))
             .ReturnsAsync(CreateUser("c2"));
 
         Video? saved = null;
@@ -279,14 +279,14 @@ public class VideoServiceTests
         Assert.Equal("https://e.com/2.jpg", saved.ThumbnailUrl);
         Assert.True(saved.UpdatedAt >= saved.CreatedAt);
 
-        Assert.Equal(saved.CreatorId, dto!.CreatorId);
+        Assert.Equal(saved.CreatorId, dto!.Creator.Id);
         Assert.Equal(saved.Title, dto.Title);
         Assert.Equal(saved.Description, dto.Description);
         Assert.Equal(saved.Url, dto.Url);
         Assert.Equal(saved.ThumbnailUrl, dto.ThumbnailUrl);
 
         videoRepo.Verify(r => r.GetByIdAsync(12), Times.Once);
-        userRepo.Verify(r => r.GetUserByIdAsync("c2"), Times.Once);
+        userRepo.Verify(r => r.GetByIdAsync("c2"), Times.Once);
         videoRepo.Verify(r => r.UpdateAsync(It.IsAny<Video>()), Times.Once);
         videoRepo.VerifyNoOtherCalls();
         userRepo.VerifyNoOtherCalls();

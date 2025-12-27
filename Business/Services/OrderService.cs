@@ -37,7 +37,7 @@ public class OrderService : IOrderService
 
     public async Task<(IdentityResult Result, OrderDto? Order)> CreateAsync(OrderCreateDto dto)
     {
-        var creator = await _userRepository.GetUserByIdAsync(dto.CreatorId);
+        var creator = await _userRepository.GetByIdAsync(dto.CreatorId);
         if (creator is null)
         {
             return (IdentityResult.Failed(new IdentityError
@@ -47,7 +47,7 @@ public class OrderService : IOrderService
             }), null);
         }
 
-        var orderer = await _userRepository.GetUserByIdAsync(dto.OrdererId);
+        var orderer = await _userRepository.GetByIdAsync(dto.OrdererId);
         if (orderer is null)
         {
             return (IdentityResult.Failed(new IdentityError

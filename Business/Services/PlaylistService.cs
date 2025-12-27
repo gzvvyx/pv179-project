@@ -1,6 +1,7 @@
 ﻿using Business.DTOs;
 using Business.Mappers;
 using DAL.Models;
+using Infra.DTOs;
 using Infra.Repository;
 using Microsoft.AspNetCore.Identity;
 
@@ -34,7 +35,7 @@ namespace Business.Services
 
         public async Task<(IdentityResult Result, PlaylistDto? Playlist)> CreateAsync(PlaylistCreateDto dto)
         {
-            var user = await _userRepository.GetUserByIdAsync(dto.CreatorId);
+            var user = await _userRepository.GetByIdAsync(dto.CreatorId);
             if (user is null)
             {
                 return (IdentityResult.Failed(new IdentityError
@@ -96,6 +97,24 @@ namespace Business.Services
             return IdentityResult.Success;
         }
 
+        public async Task<List<PlaylistDto>> GetByFilterAsync(PlaylistFilterDto dto)
+        {
+            var playlists = await _playlistRepository.GetByFilterAsync(dto);
+            return _mapper.Map(playlists);
+        }
 
+        public async Task<PagedResultDto<PlaylistDto>> GetByFilterPagedAsync(PlaylistFilterDto dto)
+        {
+            var playlists = await _playlistRepository.GetByFilterAsync(dto);
+            var totalCount = await _playlistRepository.GetFilteredCountAsync(dto);
+
+            return new PagedResultDto<PlaylistDto>
+            {
+                Items = _mapper.Map(playlists),
+                TotalCount = totalCount,
+                PageNumber = dto.PageNumber,
+                PageSize = dto.PageSize
+            };
+        }
     }
 }

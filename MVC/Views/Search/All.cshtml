@@ -1,0 +1,358 @@
+@model pv179.Models.SearchAllResultsViewModel
+@{
+    ViewData["Title"] = $"Search results for \"{Model.Query}\"";
+    ViewData["ActiveCategory"] = "all";
+    
+    var showVideos = string.IsNullOrEmpty(Context.Request.Query["showVideos"]) || Context.Request.Query["showVideos"] == "true";
+    var showPlaylists = string.IsNullOrEmpty(Context.Request.Query["showPlaylists"]) || Context.Request.Query["showPlaylists"] == "true";
+    var showCreators = string.IsNullOrEmpty(Context.Request.Query["showCreators"]) || Context.Request.Query["showCreators"] == "true";
+    
+    var fromDate = Context.Request.Query["fromDate"].ToString();
+    var toDate = Context.Request.Query["toDate"].ToString();
+    
+    var contentSort = Context.Request.Query["contentSort"].ToString();
+    var creatorSort = Context.Request.Query["creatorSort"].ToString();
+    
+    var contentSortField = "CreatedAt";
+    var contentSortDir = "Desc";
+    if (!string.IsNullOrEmpty(contentSort))
+    {
+        var parts = contentSort.Split('-');
+        if (parts.Length == 2)
+        {
+            contentSortField = parts[0];
+            contentSortDir = parts[1];
+        }
+    }
+    
+    var creatorSortDir = "Asc";
+    if (!string.IsNullOrEmpty(creatorSort))
+    {
+        var parts = creatorSort.Split('-');
+        if (parts.Length == 2)
+        {
+            creatorSortDir = parts[1];
+        }
+    }
+    
+    var totalCount = Model.Videos.TotalCount + Model.Playlists.TotalCount + Model.Creators.TotalCount;
+}
+
+<div class="py-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6">
+            <a asp-action="Index" class="btn btn-ghost btn-sm mb-2">
+                <icon name="arrow-left" />
+                Back
+            </a>
+            <h1 class="text-3xl font-bold mb-2">Search Results</h1>
+            <p class="text-base opacity-70">
+                Results for "<span class="font-semibold">@Model.Query</span>"
+            </p>
+        </div>
+
+        <!-- Two Column Layout: Filters Sidebar + Results -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Sidebar - Filters (Alza Style) -->
+            <div class="lg:col-span-1">
+                <div class="card bg-base-100 shadow-xl sticky top-4">
+                    <div class="card-body p-4">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                            <icon name="filter" class="w-5 h-5" />
+                            Filters
+                        </h3>
+
+                        <form method="get" id="filterForm" class="space-y-4">
+                            <input type="hidden" name="query" value="@Model.Query" />
+                            <input type="hidden" name="contentSort" id="contentSortHidden" value="" />
+                            <input type="hidden" name="creatorSort" id="creatorSortHidden" value="" />
+                            
+                            <!-- Category Filters -->
+                            <div>
+                                <label class="label py-0">
+                                    <span class="label-text font-semibold text-sm">Categories</span>
+                                </label>
+                                <div class="space-y-2 mt-1">
+                                    <div class="form-control">
+                                        <label class="label cursor-pointer py-1 justify-start gap-2">
+                                            <input type="checkbox" id="showVideos" class="checkbox checkbox-sm checkbox-primary" 
+                                                   checked="@showVideos" onchange="updateHiddenFields()" />
+                                            <span class="label-text text-sm">Videos (@Model.Videos.TotalCount)</span>
+                                        </label>
+                                        <input type="hidden" name="showVideos" id="showVideosHidden" value="@showVideos.ToString().ToLower()" />
+                                    </div>
+                                    <div class="form-control">
+                                        <label class="label cursor-pointer py-1 justify-start gap-2">
+                                            <input type="checkbox" id="showPlaylists" class="checkbox checkbox-sm checkbox-primary" 
+                                                   checked="@showPlaylists" onchange="updateHiddenFields()" />
+                                            <span class="label-text text-sm">Playlists (@Model.Playlists.TotalCount)</span>
+                                        </label>
+                                        <input type="hidden" name="showPlaylists" id="showPlaylistsHidden" value="@showPlaylists.ToString().ToLower()" />
+                                    </div>
+                                    <div class="form-control">
+                                        <label class="label cursor-pointer py-1 justify-start gap-2">
+                                            <input type="checkbox" id="showCreators" class="checkbox checkbox-sm checkbox-primary" 
+                                                   checked="@showCreators" onchange="updateHiddenFields()" />
+                                            <span class="label-text text-sm">Creators (@Model.Creators.TotalCount)</span>
+                                        </label>
+                                        <input type="hidden" name="showCreators" id="showCreatorsHidden" value="@showCreators.ToString().ToLower()" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Date Range (for Videos & Playlists) -->
+                            @if (Model.Videos.TotalCount > 0 || Model.Playlists.TotalCount > 0)
+                            {
+                                <div class="divider my-3"></div>
+
+                                <div>
+                                    <label class="label py-0">
+                                        <span class="label-text font-semibold text-sm">Date Range</span>
+                                    </label>
+                                    <div class="text-xs opacity-60 mb-2">For Videos & Playlists</div>
+                                    <div class="space-y-2">
+                                        <input type="date" name="fromDate" value="@fromDate"
+                                               class="input input-bordered input-sm w-full" 
+                                               placeholder="From date" />
+                                        <input type="date" name="toDate" value="@toDate"
+                                               class="input input-bordered input-sm w-full" 
+                                               placeholder="To date" />
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Sorting Section -->
+                            <div class="divider my-3"></div>
+
+                            <div>
+                                <label class="label py-0 mb-2">
+                                    <span class="label-text font-semibold text-sm">Sorting</span>
+                                </label>
+
+                                <!-- Videos & Playlists Sort -->
+                                @if (Model.Videos.TotalCount > 0 || Model.Playlists.TotalCount > 0)
+                                {
+                                    <div class="mb-4">
+                                        <label class="label py-0 mb-2">
+                                            <span class="label-text text-xs opacity-70">Videos & Playlists</span>
+                                        </label>
+                                        
+                                        <!-- Sort Field -->
+                                        <div class="mb-2">
+                                            <div class="text-xs font-semibold mb-1">Sort by:</div>
+                                            <div class="flex flex-col gap-1">
+                                                <label class="label cursor-pointer py-1 justify-start gap-2">
+                                                    <input type="radio" name="contentSortField" value="Title" class="radio radio-xs radio-primary" 
+                                                           @(contentSortField == "Title" ? "checked" : "") onchange="updateSortFields()" />
+                                                    <span class="label-text text-sm">Title/Name</span>
+                                                </label>
+                                                <label class="label cursor-pointer py-1 justify-start gap-2">
+                                                    <input type="radio" name="contentSortField" value="CreatedAt" class="radio radio-xs radio-primary"
+                                                           @(contentSortField == "CreatedAt" ? "checked" : "") onchange="updateSortFields()" />
+                                                    <span class="label-text text-sm">Date Created</span>
+                                                </label>
+                                                <label class="label cursor-pointer py-1 justify-start gap-2">
+                                                    <input type="radio" name="contentSortField" value="UpdatedAt" class="radio radio-xs radio-primary"
+                                                           @(contentSortField == "UpdatedAt" ? "checked" : "") onchange="updateSortFields()" />
+                                                    <span class="label-text text-sm">Last Updated</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Sort Direction -->
+                                        <div>
+                                            <div class="text-xs font-semibold mb-1">Order:</div>
+                                            <div class="flex flex-col gap-1">
+                                                <label class="label cursor-pointer py-1 justify-start gap-2">
+                                                    <input type="radio" name="contentSortDir" value="Asc" class="radio radio-xs radio-primary"
+                                                           @(contentSortDir == "Asc" ? "checked" : "") onchange="updateSortFields()" />
+                                                    <span class="label-text text-sm">&#8593; Ascending (A-Z, Oldest)</span>
+                                                </label>
+                                                <label class="label cursor-pointer py-1 justify-start gap-2">
+                                                    <input type="radio" name="contentSortDir" value="Desc" class="radio radio-xs radio-primary"
+                                                           @(contentSortDir == "Desc" ? "checked" : "") onchange="updateSortFields()" />
+                                                    <span class="label-text text-sm">&#8595; Descending (Z-A, Newest)</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Creators Sort -->
+                                @if (Model.Creators.TotalCount > 0)
+                                {
+                                    <div class="divider my-3"></div>
+                                    
+                                    <div class="mb-4">
+                                        <label class="label py-0 mb-2">
+                                            <span class="label-text text-xs opacity-70">Creators</span>
+                                        </label>
+                                        
+                                        <!-- Creator Sort Direction -->
+                                        <div>
+                                            <div class="text-xs font-semibold mb-1">Sort by Username:</div>
+                                            <div class="flex flex-col gap-1">
+                                                <label class="label cursor-pointer py-1 justify-start gap-2">
+                                                    <input type="radio" name="creatorSortDir" value="Asc" class="radio radio-xs radio-primary"
+                                                           @(creatorSortDir == "Asc" ? "checked" : "") onchange="updateSortFields()" />
+                                                    <span class="label-text text-sm">&#8593; A-Z</span>
+                                                </label>
+                                                <label class="label cursor-pointer py-1 justify-start gap-2">
+                                                    <input type="radio" name="creatorSortDir" value="Desc" class="radio radio-xs radio-primary"
+                                                           @(creatorSortDir == "Desc" ? "checked" : "") onchange="updateSortFields()" />
+                                                    <span class="label-text text-sm">&#8595; Z-A</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="pt-4 border-t space-y-2">
+                                <button type="submit" class="btn btn-primary btn-sm w-full">
+                                    <icon name="search" class="w-4 h-4" />
+                                    Apply Filters
+                                </button>
+                                <a asp-action="All" asp-route-query="@Model.Query" class="btn btn-ghost btn-sm w-full">
+                                    <icon name="rotate-ccw" class="w-4 h-4" />
+                                    Reset
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side - Results -->
+            <div class="lg:col-span-3">
+                <div class="mb-4 text-sm opacity-60">
+                    Found @totalCount total results
+                </div>
+
+                @{
+                    var hasResults = false;
+                }
+
+                <!-- Videos Section -->
+                @if (showVideos && Model.Videos.TotalCount > 0)
+                {
+                    hasResults = true;
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center gap-2 mb-4">
+                            <icon name="video" class="w-6 h-6" />
+                            Videos (@Model.Videos.TotalCount)
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            @foreach (var video in Model.Videos.Items)
+                            {
+                                <partial name="_VideoCard" model="video" />
+                            }
+                        </div>
+                        
+                        @if (Model.Videos.TotalPages > 1)
+                        {
+                            <div class="mt-6">
+                                <partial name="_SearchPagination" model="@(new { Section = "video", PagedResult = Model.Videos, Query = Model.Query })" />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Playlists Section -->
+                @if (showPlaylists && Model.Playlists.TotalCount > 0)
+                {
+                    hasResults = true;
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center gap-2 mb-4">
+                            <icon name="list" class="w-6 h-6" />
+                            Playlists (@Model.Playlists.TotalCount)
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            @foreach (var playlist in Model.Playlists.Items)
+                            {
+                                <partial name="_PlaylistCard" model="playlist" />
+                            }
+                        </div>
+                        
+                        @if (Model.Playlists.TotalPages > 1)
+                        {
+                            <div class="mt-6">
+                                <partial name="_SearchPagination" model="@(new { Section = "playlist", PagedResult = Model.Playlists, Query = Model.Query })" />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Creators Section -->
+                @if (showCreators && Model.Creators.TotalCount > 0)
+                {
+                    hasResults = true;
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center gap-2 mb-4">
+                            <icon name="users" class="w-6 h-6" />
+                            Creators (@Model.Creators.TotalCount)
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                            @foreach (var creator in Model.Creators.Items)
+                            {
+                                <partial name="_CreatorCard" model="creator" />
+                            }
+                        </div>
+                        
+                        @if (Model.Creators.TotalPages > 1)
+                        {
+                            <div class="mt-6">
+                                <partial name="_SearchPagination" model="@(new { Section = "creator", PagedResult = Model.Creators, Query = Model.Query })" />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- No Results -->
+                @if (!hasResults)
+                {
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body items-center text-center py-12">
+                            <icon name="search-x" class="w-16 h-16 opacity-30 mb-4" />
+                            <h3 class="text-2xl font-bold mb-2">No results to show</h3>
+                            <p class="opacity-70 mb-4">
+                                Try adjusting your filters or search for something else
+                            </p>
+                            <a asp-action="All" asp-route-query="@Model.Query" class="btn btn-primary">
+                                <icon name="rotate-ccw" />
+                                Reset Filters
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>        
+        function updateHiddenFields() {
+            document.getElementById('showVideosHidden').value = 
+                document.getElementById('showVideos').checked.toString();
+            document.getElementById('showPlaylistsHidden').value = 
+                document.getElementById('showPlaylists').checked.toString();
+            document.getElementById('showCreatorsHidden').value = 
+                document.getElementById('showCreators').checked.toString();
+        }
+        
+        function updateSortFields() {
+            const contentField = document.querySelector('input[name="contentSortField"]:checked')?.value || 'CreatedAt';
+            const contentDir = document.querySelector('input[name="contentSortDir"]:checked')?.value || 'Desc';
+            document.getElementById('contentSortHidden').value = contentField + '-' + contentDir;
+            
+            const creatorDir = document.querySelector('input[name="creatorSortDir"]:checked')?.value || 'Asc';
+            document.getElementById('creatorSortHidden').value = 'UserName-' + creatorDir;
+        }
+        
+        updateHiddenFields();
+        updateSortFields();
+    </script>
+}

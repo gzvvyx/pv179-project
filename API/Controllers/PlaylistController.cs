@@ -1,5 +1,6 @@
 ﻿using Business.DTOs;
 using Business.Services;
+using Infra.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -18,9 +19,20 @@ public class PlaylistController : ControllerBase
     }
 
     [HttpGet(Name = "GetPlaylists")]
-    public async Task<IEnumerable<PlaylistDto>> Get()
+    public async Task<IEnumerable<PlaylistDto>> Get(
+        [FromQuery] string? name,
+        [FromQuery] string? description,
+        [FromQuery] string? creatorId
+    )
     {
-        return await _playlistService.GetAllAsync();
+        var filter = new PlaylistFilterDto
+        {
+            Name = name,
+            Description = description,
+            CreatorId = creatorId
+        };
+
+        return await _playlistService.GetByFilterAsync(filter);
     }
 
     [HttpGet("{id:int}", Name = "GetPlaylistById")]

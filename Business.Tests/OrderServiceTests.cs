@@ -62,7 +62,7 @@ public class OrderServiceTests
             Amount = 10m
         };
 
-        userRepo.Setup(r => r.GetUserByIdAsync(dto.CreatorId))
+        userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync((User?)null);
 
         // Act
@@ -74,7 +74,7 @@ public class OrderServiceTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("CreatorNotFound", error.Code);
 
-        userRepo.Verify(r => r.GetUserByIdAsync(dto.CreatorId), Times.Once);
+        userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
         userRepo.VerifyNoOtherCalls();
         orderRepo.VerifyNoOtherCalls();
     }
@@ -94,9 +94,9 @@ public class OrderServiceTests
             Amount = 15m
         };
 
-        userRepo.Setup(r => r.GetUserByIdAsync(dto.CreatorId))
+        userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync(CreateUser(dto.CreatorId));
-        userRepo.Setup(r => r.GetUserByIdAsync(dto.OrdererId))
+        userRepo.Setup(r => r.GetByIdAsync(dto.OrdererId))
             .ReturnsAsync((User?)null);
 
         // Act
@@ -108,8 +108,8 @@ public class OrderServiceTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("OrdererNotFound", error.Code);
 
-        userRepo.Verify(r => r.GetUserByIdAsync(dto.CreatorId), Times.Once);
-        userRepo.Verify(r => r.GetUserByIdAsync(dto.OrdererId), Times.Once);
+        userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
+        userRepo.Verify(r => r.GetByIdAsync(dto.OrdererId), Times.Once);
         userRepo.VerifyNoOtherCalls();
         orderRepo.VerifyNoOtherCalls();
     }
@@ -129,9 +129,9 @@ public class OrderServiceTests
             Amount = 25.5m
         };
 
-        userRepo.Setup(r => r.GetUserByIdAsync(dto.CreatorId))
+        userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync(CreateUser(dto.CreatorId));
-        userRepo.Setup(r => r.GetUserByIdAsync(dto.OrdererId))
+        userRepo.Setup(r => r.GetByIdAsync(dto.OrdererId))
             .ReturnsAsync(CreateUser(dto.OrdererId));
 
         Order? createdOrder = null;
@@ -162,8 +162,8 @@ public class OrderServiceTests
         Assert.True(orderDto.CreatedAt >= before);
         Assert.True(orderDto.UpdatedAt >= orderDto.CreatedAt);
 
-        userRepo.Verify(r => r.GetUserByIdAsync(dto.CreatorId), Times.Once);
-        userRepo.Verify(r => r.GetUserByIdAsync(dto.OrdererId), Times.Once);
+        userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
+        userRepo.Verify(r => r.GetByIdAsync(dto.OrdererId), Times.Once);
         orderRepo.Verify(r => r.CreateAsync(It.IsAny<Order>()), Times.Once);
         userRepo.VerifyNoOtherCalls();
         orderRepo.VerifyNoOtherCalls();

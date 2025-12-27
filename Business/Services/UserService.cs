@@ -1,6 +1,7 @@
 using Business.DTOs;
 using Business.Mappers;
 using DAL.Models;
+using Infra.DTOs;
 using Infra.Repository;
 using Microsoft.AspNetCore.Identity;
 
@@ -18,13 +19,13 @@ public class UserService : IUserService
 
     public async Task<List<UserDto>> GetAllAsync()
     {
-        var users = await _userRepository.GetAllUsers();
+        var users = await _userRepository.GetAllAsync();
         return _mapper.Map(users);
     }
 
     public async Task<UserDto?> GetByIdAsync(string id)
     {
-        var user = await _userRepository.GetUserByIdAsync(id);
+        var user = await _userRepository.GetByIdAsync(id);
         return user is null ? null : _mapper.Map(user);
     }
 
@@ -36,7 +37,7 @@ public class UserService : IUserService
             Email = dto.Email
         };
 
-        var result = await _userRepository.CreateUserAsync(user, dto.Password);
+        var result = await _userRepository.CreateAsync(user, dto.Password);
 
         if (!result.Succeeded)
         {
@@ -48,7 +49,7 @@ public class UserService : IUserService
 
     public async Task<(IdentityResult Result, UserDto? User)> UpdateAsync(string id, UserUpdateDto dto)
     {
-        var user = await _userRepository.GetUserByIdAsync(id);
+        var user = await _userRepository.GetByIdAsync(id);
 
         if (user is null)
         {
@@ -71,7 +72,7 @@ public class UserService : IUserService
             user.Email = dto.Email;
         }
 
-        var result = await _userRepository.UpdateUserAsync(user);
+        var result = await _userRepository.UpdateAsync(user);
 
         if (!result.Succeeded)
         {
@@ -83,7 +84,7 @@ public class UserService : IUserService
 
     public async Task<IdentityResult> DeleteAsync(string id)
     {
-        var user = await _userRepository.GetUserByIdAsync(id);
+        var user = await _userRepository.GetByIdAsync(id);
 
         if (user is null)
         {
@@ -94,6 +95,26 @@ public class UserService : IUserService
             });
         }
 
-        return await _userRepository.DeleteUserAsync(user);
+        return await _userRepository.DeleteAsync(user);
+    }
+
+    public async Task<List<UserDto>> GetByFilterAsync(UserFilterDto dto)
+    {
+        var users = await _userRepository.GetByFilterAsync(dto);
+        return _mapper.Map(users);
+    }
+
+    public async Task<PagedResultDto<UserDto>> GetByFilterPagedAsync(UserFilterDto dto)
+    {
+        var users = await _userRepository.GetByFilterAsync(dto);
+        var totalCount = await _userRepository.GetFilteredCountAsync(dto);
+
+        return new PagedResultDto<UserDto>
+        {
+            Items = _mapper.Map(users),
+            TotalCount = totalCount,
+            PageNumber = dto.PageNumber,
+            PageSize = dto.PageSize
+        };
     }
 }
