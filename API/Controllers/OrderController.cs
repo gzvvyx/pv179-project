@@ -24,6 +24,19 @@ public class OrderController : ControllerBase
         return await _orderService.GetAllAsync();
     }
 
+    [HttpGet("my-orders", Name = "GetMyOrders")]
+    public async Task<IEnumerable<OrderDto>> GetMyOrders()
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Enumerable.Empty<OrderDto>();
+        }
+
+        return await _orderService.GetByOrdererIdAsync(userId);
+    }
+
     [HttpGet("{id:int}", Name = "GetOrderById")]
     public async Task<ActionResult<OrderDto>> GetById(int id)
     {

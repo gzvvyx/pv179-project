@@ -29,6 +29,12 @@ public class OrderService : IOrderService
         return order == null ? null : _mapper.Map(order);
     }
 
+    public async Task<List<OrderDto>> GetByOrdererIdAsync(string ordererId)
+    {
+        var orders = await _orderRepository.GetByOrdererIdAsync(ordererId);
+        return _mapper.Map(orders);
+    }
+
     public async Task<(IdentityResult Result, OrderDto? Order)> CreateAsync(OrderCreateDto dto)
     {
         var creator = await _userRepository.GetByIdAsync(dto.CreatorId);

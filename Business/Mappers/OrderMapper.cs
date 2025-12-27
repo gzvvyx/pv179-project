@@ -8,5 +8,6 @@ namespace Business.Mappers;
 public partial class OrderMapper
 {
     public partial List<OrderDto> Map(List<Order> orders);
+    
     public partial OrderDto Map(Order order);
 }
