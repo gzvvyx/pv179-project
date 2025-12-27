@@ -59,24 +59,89 @@ namespace Infra.Repository
 
         public async Task<List<Playlist>> GetByFilterAsync(PlaylistFilterDto dto)
         {
-            var query = _dbContext.Playlists.AsQueryable();
+            var query = _dbContext.Playlists
+                .Include(p => p.Creator)
+                .AsNoTracking()
+                .AsQueryable();
 
-            if (!string.IsNullOrEmpty(dto.CreatorId))
-            {
-                query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
-            }
-
+            // Apply search filters
             if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
             {
                 var searchTerm = dto.Name ?? dto.Description;
-
                 query = query.Where(playlist =>
                     EF.Functions.ILike(playlist.Name, $"%{searchTerm}%") ||
                     (playlist.Description != null && EF.Functions.ILike(playlist.Description, $"%{searchTerm}%"))
                 );
             }
 
+            if (!string.IsNullOrEmpty(dto.CreatorId))
+            {
+                query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
+            }
+
+            // Apply date filters
+            if (dto.FromDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedAt >= dto.FromDate.Value);
+            }
+
+            if (dto.ToDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedAt <= dto.ToDate.Value);
+            }
+
+            // Apply sorting
+            query = dto.SortBy?.ToLower() switch
+            {
+                "name" => dto.SortDescending 
+                    ? query.OrderByDescending(p => p.Name) 
+                    : query.OrderBy(p => p.Name),
+                "updatedat" => dto.SortDescending 
+                    ? query.OrderByDescending(p => p.UpdatedAt) 
+                    : query.OrderBy(p => p.UpdatedAt),
+                _ => dto.SortDescending 
+                    ? query.OrderByDescending(p => p.CreatedAt) 
+                    : query.OrderBy(p => p.CreatedAt)
+            };
+
+            // Apply pagination
+            query = query
+                .Skip((dto.PageNumber - 1) * dto.PageSize)
+                .Take(dto.PageSize);
+
             return await query.ToListAsync();
+        }
+
+        public async Task<int> GetFilteredCountAsync(PlaylistFilterDto dto)
+        {
+            var query = _dbContext.Playlists.AsQueryable();
+
+            // Apply same filters as GetByFilterAsync (without pagination)
+            if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
+            {
+                var searchTerm = dto.Name ?? dto.Description;
+                query = query.Where(playlist =>
+                    EF.Functions.ILike(playlist.Name, $"%{searchTerm}%") ||
+                    (playlist.Description != null && EF.Functions.ILike(playlist.Description, $"%{searchTerm}%"))
+                );
+            }
+
+            if (!string.IsNullOrEmpty(dto.CreatorId))
+            {
+                query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
+            }
+
+            if (dto.FromDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedAt >= dto.FromDate.Value);
+            }
+
+            if (dto.ToDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedAt <= dto.ToDate.Value);
+            }
+
+            return await query.CountAsync();
         }
     }
 }

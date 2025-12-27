@@ -11,6 +11,6 @@ namespace Infra.Repository
         Task UpdateAsync(Playlist playlist);
         Task DeleteAsync(Playlist playlist);
         Task<List<Playlist>> GetByFilterAsync(PlaylistFilterDto dto);
-
+        Task<int> GetFilteredCountAsync(PlaylistFilterDto dto);
     }
 }
