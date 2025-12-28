@@ -7,9 +7,26 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using MVC.Services;
+using Serilog;
+using SerilogTracing;
+using SerilogTracing.Expressions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Global logger configuration
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
+
+// Enable tracing of ASP.NET requests
+using var listener = new ActivityListenerConfiguration()
+    .Instrument.AspNetCoreRequests()
+    .TraceToSharedLogger();
+
+Log.Information("Starting MVC application...");
+
+builder.Logging.ClearProviders();
+builder.Host.UseSerilog();
 
 // Get connection string from appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -92,6 +109,9 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Log all incoming HTTP requests automatically
+app.UseSerilogRequestLogging();
 
 app.MapControllerRoute(
     name: "default",
