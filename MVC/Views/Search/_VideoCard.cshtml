@@ -18,12 +18,11 @@
                 {
                     <div class="flex flex-wrap gap-1 items-center">
                         @{
-                            // Sort categories: primary first, then others
                             var sortedCategories = Model.Categories.OrderByDescending(vc => vc.IsPrimary).ToList();
                             var visibleCategories = sortedCategories.Take(3).ToList();
                             var remainingCount = sortedCategories.Count - 3;
                         }
-                        
+
                         @foreach (var videoCategory in visibleCategories)
                         {
                             @if (videoCategory.IsPrimary)
@@ -39,7 +38,7 @@
                                 </span>
                             }
                         }
-                        
+
                         @if (remainingCount > 0)
                         {
                             <span class="text-xs opacity-60">+@remainingCount more</span>
@@ -47,7 +46,7 @@
                     </div>
                 }
             </div>
-            <a href="@Model.Url" target="_blank" class="btn btn-primary btn-sm">
+            <a asp-controller="VideoDetail" asp-action="Detail" asp-route-id="@Model.Id" class="btn btn-primary btn-sm">
                 <icon name="play" />
                 Watch
             </a>
