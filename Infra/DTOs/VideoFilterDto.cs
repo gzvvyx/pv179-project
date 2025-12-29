@@ -8,6 +8,9 @@ public class VideoFilterDto
     public string? Title { get; set; }
     public string? Description { get; set; }
     public string? CreatorId { get; set; }
+    
+    public int? CategoryId { get; set; }
+    public List<int>? CategoryIds { get; set; }
 
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }

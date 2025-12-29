@@ -10,5 +10,6 @@ public class VideoDto
     public required string ThumbnailUrl { get; set; }
     public required DateTime CreatedAt { get; set; }
     public required DateTime UpdatedAt { get; set; }
+    public List<VideoCategoryDto> Categories { get; set; } = new List<VideoCategoryDto>();
 }
 

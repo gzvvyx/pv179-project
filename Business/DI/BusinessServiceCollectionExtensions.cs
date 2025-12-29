@@ -13,6 +13,7 @@ public static class BusinessServiceCollectionExtensions
         services.AddScoped<IPlaylistService, PlaylistService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<ICategoryService, CategoryService>();
 
         return services;
     }
