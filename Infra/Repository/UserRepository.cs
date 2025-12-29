@@ -24,6 +24,15 @@ public class UserRepository : IUserRepository
         return _userManager.FindByIdAsync(id);
     }
 
+    public Task<User?> GetDetailsByIdAsync(string id)
+    {
+        return _userManager.Users
+            .Include(u => u.Videos)
+            .Include(u => u.Playlists)
+            .Include(u => u.Comments)
+            .FirstOrDefaultAsync(u => u.Id == id);
+    }
+
     public Task<IdentityResult> CreateAsync(User user, string password)
     {
         return _userManager.CreateAsync(user, password);

@@ -6,7 +6,7 @@ namespace Business.DTOs
     public class CommentDto
     {
         public required int Id { get; set; }
-        public required string AuthorId { get; set; }
+        public required UserDto Author { get; set; }
 
         public required string Content { get; set; }
 

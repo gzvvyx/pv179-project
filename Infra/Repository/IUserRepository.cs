@@ -8,6 +8,7 @@ public interface IUserRepository
 {
     Task<List<User>> GetAllAsync();
     Task<User?> GetByIdAsync(string id);
+    Task<User?> GetDetailsByIdAsync(string id);
     Task<IdentityResult> CreateAsync(User user, string password);
     Task<IdentityResult> UpdateAsync(User user);
     Task<IdentityResult> DeleteAsync(User user);

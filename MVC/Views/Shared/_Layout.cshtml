@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using DAL.Models
 @inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
 
 <!DOCTYPE html>
 <html lang="en">
@@ -65,6 +66,12 @@
                             <a asp-area="" asp-controller="Order" asp-action="MyOrders" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Orders">
                                 <icon name="shopping-bag" />
                                 <span class="is-drawer-close:hidden">My Orders</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-area="" asp-controller="User" asp-action="Index" asp-route-id="@UserManager.GetUserId(User)" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Profile">
+                                <icon name="user" />
+                                <span class="is-drawer-close:hidden">My Profile</span>
                             </a>
                         </li>
                         <li>

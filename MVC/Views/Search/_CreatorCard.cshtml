@@ -14,10 +14,10 @@
             <p class="text-xs opacity-60">@Model.Email</p>
         }
         <div class="card-actions mt-2">
-            <button class="btn btn-primary btn-sm btn-block">
+            <a asp-controller="User" asp-action="Index" asp-route-id="@Model.Id" class="btn btn-primary btn-sm btn-block">
                 <icon name="user-plus" />
                 View Profile
-            </button>
+            </a>
         </div>
     </div>
 </div>
