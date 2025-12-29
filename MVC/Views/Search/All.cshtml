@@ -68,10 +68,117 @@
                             <input type="hidden" name="contentSort" id="contentSortHidden" value="" />
                             <input type="hidden" name="creatorSort" id="creatorSortHidden" value="" />
                             
-                            <!-- Category Filters -->
+                            <!-- Video Category Filters -->
+                            @if (Model.AvailableCategories.Any() && showVideos && Model.Videos.TotalCount > 0)
+                            {
+                                <div>
+                                    <label class="label py-0">
+                                        <span class="label-text font-semibold text-sm">Video Categories</span>
+                                    </label>
+                                    <div class="text-xs opacity-60 mb-2">Click to select/deselect categories</div>
+                                    
+                                    @{
+                                        var visibleCats = Model.AvailableCategories.Take(3).ToList();
+                                        var remainingCats = Model.AvailableCategories.Skip(3).ToList();
+                                    }
+                                    
+                                    <div class="flex flex-col gap-1" id="categoryButtons">
+                                        @foreach (var category in visibleCats)
+                                        {
+                                            var isSelected = Model.SelectedCategoryIds.Contains(category.Id);
+                                            <label class="flex items-center gap-2 cursor-pointer hover:bg-base-200 p-2 rounded transition-colors">
+                                                <input type="checkbox" 
+                                                       class="hidden category-checkbox" 
+                                                       data-category-id="@category.Id"
+                                                       @(isSelected ? "checked" : "")
+                                                       onchange="toggleCategoryCheckbox(this, @category.Id)" />
+                                                <span class="w-4 h-4 rounded-full border-2 flex items-center justify-center category-dot @(isSelected ? "border-primary bg-primary" : "border-base-300")"
+                                                      data-category-id="@category.Id">
+                                                    @if (isSelected)
+                                                    {
+                                                        <span class="w-2 h-2 rounded-full bg-primary-content"></span>
+                                                    }
+                                                </span>
+                                                <span class="text-sm">@category.Name</span>
+                                            </label>
+                                        }
+                                        
+                                        @if (remainingCats.Any())
+                                        {
+                                            <div id="moreCategoriesContainer" style="display: none;">
+                                                @foreach (var category in remainingCats)
+                                                {
+                                                    var isSelected = Model.SelectedCategoryIds.Contains(category.Id);
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-base-200 p-2 rounded transition-colors">
+                                                        <input type="checkbox" 
+                                                               class="hidden category-checkbox" 
+                                                               data-category-id="@category.Id"
+                                                               @(isSelected ? "checked" : "")
+                                                               onchange="toggleCategoryCheckbox(this, @category.Id)" />
+                                                        <span class="w-4 h-4 rounded-full border-2 flex items-center justify-center category-dot @(isSelected ? "border-primary bg-primary" : "border-base-300")"
+                                                              data-category-id="@category.Id">
+                                                            @if (isSelected)
+                                                            {
+                                                                <span class="w-2 h-2 rounded-full bg-primary-content"></span>
+                                                            }
+                                                        </span>
+                                                        <span class="text-sm">@category.Name</span>
+                                                    </label>
+                                                }
+                                            </div>
+                                            
+                                            <button type="button" 
+                                                    onclick="toggleMoreCategories()" 
+                                                    class="btn btn-ghost btn-sm w-full justify-start text-primary"
+                                                    id="showMoreCategoriesBtn">
+                                                <icon name="chevron-down" class="w-4 h-4" />
+                                                <span>Show @remainingCats.Count more</span>
+                                            </button>
+                                            
+                                            <button type="button" 
+                                                    onclick="toggleMoreCategories()" 
+                                                    class="btn btn-ghost btn-sm w-full justify-start text-primary"
+                                                    id="showLessCategoriesBtn"
+                                                    style="display: none;">
+                                                <icon name="chevron-up" class="w-4 h-4" />
+                                                <span>Show less</span>
+                                            </button>
+                                        }
+                                    </div>
+                                    
+                                    <!-- Hidden inputs for selected categories -->
+                                    <div id="categoryInputs">
+                                        @foreach (var categoryId in Model.SelectedCategoryIds)
+                                        {
+                                            <input type="hidden" name="categoryIds" value="@categoryId" class="category-input" />
+                                        }
+                                    </div>
+                                    
+                                    <div class="mt-2 text-xs opacity-60">
+                                        @if (Model.SelectedCategoryIds.Any())
+                                        {
+                                            <span class="font-semibold" id="selectedCount">@Model.SelectedCategoryIds.Count selected</span>
+                                            <button type="button" onclick="clearAllCategories()" class="link link-primary ml-2">
+                                                Clear All
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span id="selectedCount">No categories selected (all videos shown)</span>
+                                            <button type="button" onclick="clearAllCategories()" class="link link-primary ml-2" style="display: none;" id="clearBtn">
+                                                Clear All
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="divider my-3"></div>
+                            }
+                            
+                            <!-- Content Type Filters -->
                             <div>
                                 <label class="label py-0">
-                                    <span class="label-text font-semibold text-sm">Categories</span>
+                                    <span class="label-text font-semibold text-sm">Content Types</span>
                                 </label>
                                 <div class="space-y-2 mt-1">
                                     <div class="form-control">
@@ -350,6 +457,101 @@
             
             const creatorDir = document.querySelector('input[name="creatorSortDir"]:checked')?.value || 'Asc';
             document.getElementById('creatorSortHidden').value = 'UserName-' + creatorDir;
+        }
+        
+        function toggleCategoryCheckbox(checkbox, categoryId) {
+            const isChecked = checkbox.checked;
+            const dot = document.querySelector(`.category-dot[data-category-id="${categoryId}"]`);
+            const categoryInputsContainer = document.getElementById('categoryInputs');
+            
+            if (isChecked) {
+                // Select - update dot visual
+                dot.classList.add('border-primary', 'bg-primary');
+                dot.classList.remove('border-base-300');
+                dot.innerHTML = '<span class="w-2 h-2 rounded-full bg-primary-content"></span>';
+                
+                // Add hidden input
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'categoryIds';
+                input.value = categoryId;
+                input.className = 'category-input';
+                categoryInputsContainer.appendChild(input);
+            } else {
+                // Deselect - update dot visual
+                dot.classList.remove('border-primary', 'bg-primary');
+                dot.classList.add('border-base-300');
+                dot.innerHTML = '';
+                
+                // Remove hidden input
+                const input = categoryInputsContainer.querySelector(`input[value="${categoryId}"]`);
+                if (input) {
+                    input.remove();
+                }
+            }
+            
+            updateCategoryCounter();
+        }
+        
+        function clearAllCategories() {
+            // Uncheck all checkboxes
+            const checkboxes = document.querySelectorAll('.category-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Reset all dots
+            const dots = document.querySelectorAll('.category-dot');
+            dots.forEach(dot => {
+                dot.classList.remove('border-primary', 'bg-primary');
+                dot.classList.add('border-base-300');
+                dot.innerHTML = '';
+            });
+            
+            // Remove all hidden inputs
+            const categoryInputsContainer = document.getElementById('categoryInputs');
+            categoryInputsContainer.innerHTML = '';
+            
+            updateCategoryCounter();
+        }
+        
+        function updateCategoryCounter() {
+            const selectedCount = document.querySelectorAll('.category-input').length;
+            const counterElement = document.getElementById('selectedCount');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            if (selectedCount > 0) {
+                counterElement.innerHTML = `<span class="font-semibold">${selectedCount} selected</span>`;
+                if (clearBtn) {
+                    clearBtn.style.display = 'inline';
+                }
+            } else {
+                counterElement.textContent = 'No categories selected (all videos shown)';
+                if (clearBtn) {
+                    clearBtn.style.display = 'none';
+                }
+            }
+        }
+        
+        function toggleMoreCategories() {
+            const container = document.getElementById('moreCategoriesContainer');
+            const btnMore = document.getElementById('showMoreCategoriesBtn');
+            const btnLess = document.getElementById('showLessCategoriesBtn');
+            
+            if (container.style.display === 'none' || container.style.display === '') {
+                container.style.display = 'block';
+                btnMore.style.display = 'none';
+                btnLess.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+                btnMore.style.display = 'block';
+                btnLess.style.display = 'none';
+            }
+        }
+        
+        // Legacy function name for compatibility
+        function clearCategories() {
+            clearAllCategories();
         }
         
         updateHiddenFields();

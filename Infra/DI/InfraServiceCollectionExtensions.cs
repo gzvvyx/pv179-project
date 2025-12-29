@@ -13,6 +13,7 @@ public static class InfraServiceCollectionExtensions
         services.AddScoped<IPlaylistRepository, PlaylistRepository>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
 
         return services;
     }

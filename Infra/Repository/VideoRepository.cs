@@ -17,6 +17,9 @@ public class VideoRepository : IVideoRepository
     public Task<List<Video>> GetAllAsync()
     {
         return _dbContext.Videos
+            .Include(v => v.Creator)
+            .Include(v => v.VideoCategories)
+                .ThenInclude(vc => vc.Category)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -25,6 +28,8 @@ public class VideoRepository : IVideoRepository
     {
         return _dbContext.Videos
             .Include(video => video.Creator)
+            .Include(video => video.VideoCategories)
+                .ThenInclude(vc => vc.Category)
             .FirstOrDefaultAsync(video => video.Id == id);
     }
 
@@ -60,6 +65,8 @@ public class VideoRepository : IVideoRepository
     {
         var query = _dbContext.Videos
             .Include(v => v.Creator)
+            .Include(v => v.VideoCategories)
+                .ThenInclude(vc => vc.Category)
             .AsNoTracking()
             .AsQueryable();
 
@@ -75,6 +82,20 @@ public class VideoRepository : IVideoRepository
         if (!string.IsNullOrEmpty(dto.CreatorId))
         {
             query = query.Where(video => video.CreatorId == dto.CreatorId);
+        }
+
+        if (dto.CategoryIds != null && dto.CategoryIds.Any())
+        {
+            // AND logic: video must have ALL selected categories
+            foreach (var categoryId in dto.CategoryIds)
+            {
+                var catId = categoryId; // Capture variable for closure
+                query = query.Where(video => video.VideoCategories.Any(vc => vc.CategoryId == catId));
+            }
+        }
+        else if (dto.CategoryId.HasValue)
+        {
+            query = query.Where(video => video.VideoCategories.Any(vc => vc.CategoryId == dto.CategoryId.Value));
         }
 
         if (dto.FromDate.HasValue)
@@ -123,6 +144,20 @@ public class VideoRepository : IVideoRepository
         if (!string.IsNullOrEmpty(dto.CreatorId))
         {
             query = query.Where(video => video.CreatorId == dto.CreatorId);
+        }
+
+        // AND logic: video must have ALL selected categories
+        if (dto.CategoryIds != null && dto.CategoryIds.Any())
+        {
+            foreach (var categoryId in dto.CategoryIds)
+            {
+                var catId = categoryId; // Capture variable for closure
+                query = query.Where(video => video.VideoCategories.Any(vc => vc.CategoryId == catId));
+            }
+        }
+        else if (dto.CategoryId.HasValue)
+        {
+            query = query.Where(video => video.VideoCategories.Any(vc => vc.CategoryId == dto.CategoryId.Value));
         }
 
         if (dto.FromDate.HasValue)

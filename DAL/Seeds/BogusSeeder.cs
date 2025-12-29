@@ -1,7 +1,5 @@
-﻿using Bogus;
+﻿using DAL.Data;
 using Microsoft.EntityFrameworkCore;
-using DAL.Data;
-using DAL.Models;
 
 namespace DAL.Seeds;
 
@@ -21,5 +19,7 @@ public static class BogusSeeder
         await BogusOrderSeeds.SeedAsync(db);
         await BogusSubscriptionSeeds.SeedAsync(db);
         await BogusCommentSeeds.SeedAsync(db);
+        await BogusCategorySeeds.SeedAsync(db);
+        await BogusCategorySeeds.SeedVideoCategoriesAsync(db);
     }
 }

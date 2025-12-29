@@ -30,4 +30,7 @@ public class Video : BaseEntity
 
     [InverseProperty(nameof(Playlist.Videos))]
     public ICollection<Playlist> Playlists { get; set; } = new List<Playlist>();
+
+    [InverseProperty(nameof(VideoCategory.Video))]
+    public ICollection<VideoCategory> VideoCategories { get; set; } = new List<VideoCategory>();
 }
