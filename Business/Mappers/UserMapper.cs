@@ -9,4 +9,5 @@ public partial class UserMapper
 {
     public partial List<UserDto> Map(List<User> users);
     public partial UserDto Map(User user);
+    public partial UserDetailsDto MapDetails(User user);
 }

@@ -29,6 +29,12 @@ public class UserService : IUserService
         return user is null ? null : _mapper.Map(user);
     }
 
+    public async Task<UserDetailsDto?> GetDetailsByIdAsync(string id)
+    {
+        var user = await _userRepository.GetDetailsByIdAsync(id);
+        return user is null ? null : _mapper.MapDetails(user);
+    }
+
     public async Task<(IdentityResult Result, UserDto? User)> CreateAsync(UserCreateDto dto)
     {
         var user = new User
