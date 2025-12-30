@@ -14,6 +14,8 @@ public static class BusinessServiceCollectionExtensions
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IGiftCardService, GiftCardService>();
+        services.AddScoped<IGiftCardCodeService, GiftCardCodeService>();
 
         return services;
     }

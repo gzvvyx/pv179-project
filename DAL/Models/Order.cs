@@ -20,6 +20,8 @@ public class Order : BaseEntity
     [Required]
     public required OrderStatus Status { get; set; }
 
+    public GiftCardCode? GiftCardCode { get; set; }
+
     [Required]
     [InverseProperty(nameof(User.OrdersPlaced))]
     public required User Orderer { get; set; }

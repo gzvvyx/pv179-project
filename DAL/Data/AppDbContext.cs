@@ -19,6 +19,8 @@ public class AppDbContext : IdentityDbContext<User>
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<VideoCategory> VideoCategories { get; set; }
+    public DbSet<GiftCard> GiftCards { get; set; }
+    public DbSet<GiftCardCode> GiftCardCodes { get; set; }
 
     public AppDbContext(DbContextOptions options, ICurrentUserService? currentUserService = null) : base(options)
     {

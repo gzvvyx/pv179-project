@@ -14,6 +14,8 @@ public static class InfraServiceCollectionExtensions
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<IGiftCardRepository, GiftCardRepository>();
+        services.AddScoped<IGiftCardCodeRepository, GiftCardCodeRepository>();
 
         return services;
     }

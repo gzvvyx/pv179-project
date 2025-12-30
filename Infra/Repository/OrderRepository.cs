@@ -17,6 +17,8 @@ public class OrderRepository : IOrderRepository
     {
         return _dbContext.Orders
             .AsNoTracking()
+            .Include(order => order.Orderer)
+            .Include(order => order.Creator)
             .ToListAsync();
     }
 

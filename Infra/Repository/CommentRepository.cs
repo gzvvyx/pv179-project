@@ -17,6 +17,7 @@ namespace Infra.Repository
         {
             return _dbContext.Comments
                 .AsNoTracking()
+                .Include(comment => comment.Author)
                 .ToListAsync();
         }
 
