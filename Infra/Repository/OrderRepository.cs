@@ -22,6 +22,15 @@ public class OrderRepository : IOrderRepository
             .ToListAsync();
     }
 
+    public Task<List<Order>> GetAllWithUsersAsync()
+    {
+        return _dbContext.Orders
+            .AsNoTracking()
+            .Include(order => order.Creator)
+            .Include(order => order.Orderer)
+            .ToListAsync();
+    }
+
     public Task<Order?> GetByIdAsync(int id)
     {
         return _dbContext.Orders
@@ -53,7 +62,6 @@ public class OrderRepository : IOrderRepository
         }
 
         await _dbContext.Orders.AddAsync(order);
-        await _dbContext.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Order order)
@@ -70,12 +78,10 @@ public class OrderRepository : IOrderRepository
         }
 
         _dbContext.Orders.Update(order);
-        await _dbContext.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Order order)
     {
         _dbContext.Orders.Remove(order);
-        await _dbContext.SaveChangesAsync();
     }
 }

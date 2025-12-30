@@ -1,15 +1,18 @@
-@model dynamic
+@model pv179.Models.SearchPaginationViewModel
 
 @{
-    var section = (string)Model.Section;
-    var pagedResult = Model.PagedResult as dynamic;
-    var query = (string)Model.Query;
+    if (Model == null)
+    {
+        return;
+    }
     
+    var section = Model.Section;
+    var query = Model.Query;
     var pageParamName = section + "Page";
-    var currentPage = (int)pagedResult.PageNumber;
-    var totalPages = (int)pagedResult.TotalPages;
-    var totalCount = (int)pagedResult.TotalCount;
-    var pageSize = (int)pagedResult.PageSize;
+    var currentPage = Model.PageNumber;
+    var totalPages = Model.TotalPages;
+    var totalCount = Model.TotalCount;
+    var pageSize = Model.PageSize;
     
     string BuildUrl(int pageNumber)
     {

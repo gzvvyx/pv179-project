@@ -1,0 +1,80 @@
+@model EditCategoryViewModel
+@{
+    ViewData["Title"] = "Edit Category";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">Edit Category #@Model.Id</h1>
+            <p class="text-base-content/70 mt-2">Update category details</p>
+        </div>
+        <a asp-action="Index" class="btn btn-ghost">
+            <icon name="arrow-left" />
+            Back to Categories
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-error mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                
+                <div asp-validation-summary="ModelOnly" class="text-error mb-4"></div>
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="form-control">
+                        <label class="label">Category ID</label>
+                        <input type="text" value="#@Model.Id" class="input input-bordered" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="Name">
+                            <span class="label-text">Category Name</span>
+                        </label>
+                        <input type="text" asp-for="Name" class="input input-bordered" />
+                        <span asp-validation-for="Name" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Created At</label>
+                        <input type="text" value="@Model.CreatedAt.ToLocalTime().ToString("g")" class="input input-bordered" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Updated At</label>
+                        <input type="text" value="@Model.UpdatedAt.ToLocalTime().ToString("g")" class="input input-bordered" disabled />
+                    </div>
+                </div>
+
+                <div class="form-control mt-6">
+                    <button type="submit" class="btn btn-primary">
+                        <icon name="save" />
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

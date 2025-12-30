@@ -1,5 +1,6 @@
 ﻿using Business.DTOs;
 using DAL.Models;
+using DAL.Models.Enums;
 using Riok.Mapperly.Abstractions;
 
 namespace Business.Mappers;

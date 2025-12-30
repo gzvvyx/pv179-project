@@ -1,8 +1,11 @@
 ﻿using Business.DTOs;
+using Business.Extensions;
 using Business.Mappers;
+using DAL.Data;
 using DAL.Models;
+using ErrorOr;
+using FluentValidation;
 using Infra.Repository;
-using Microsoft.AspNetCore.Identity;
 
 namespace Business.Services;
 
@@ -10,11 +13,23 @@ public class GiftCardService : IGiftCardService
 {
     private readonly IGiftCardRepository _giftCardRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IValidator<GiftCardCreateDto> _createValidator;
+    private readonly IValidator<GiftCardUpdateDto> _updateValidator;
+    private readonly AppDbContext _dbContext;
     private readonly GiftCardMapper _mapper = new();
-    public GiftCardService(IGiftCardRepository giftCardRepository, IUserRepository userRepository)
+    
+    public GiftCardService(
+        IGiftCardRepository giftCardRepository, 
+        IUserRepository userRepository,
+        AppDbContext dbContext,
+        IValidator<GiftCardCreateDto> createValidator,
+        IValidator<GiftCardUpdateDto> updateValidator)
     {
         _giftCardRepository = giftCardRepository;
         _userRepository = userRepository;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
+        _dbContext = dbContext;
     }
     public async Task<List<GiftCardDto>> GetAllAsync()
     {
@@ -27,39 +42,50 @@ public class GiftCardService : IGiftCardService
         return giftCard == null ? null : _mapper.Map(giftCard);
     }
 
-    public async Task<(IdentityResult Result, GiftCardDto? GiftCard)> CreateAsync(GiftCardCreateDto dto)
+    public async Task<ErrorOr<GiftCardDto>> CreateAsync(GiftCardCreateDto dto)
     {
-        var timestamp = DateTime.UtcNow;
+        var validationResult = await _createValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
+        {
+            return validationResult.ToErrors();
+        }
 
         var giftCard = new GiftCard
         {
             Id = default,
             PriceReduction = dto.PriceReduction,
-            ValidFrom = dto.ValidFrom,
-            ValidTo = dto.ValidTo,
-            CreatedAt = timestamp,
-            UpdatedAt = timestamp
+            ValidFrom = dto.ValidFrom.Kind == DateTimeKind.Unspecified 
+                ? DateTime.SpecifyKind(dto.ValidFrom, DateTimeKind.Utc) 
+                : dto.ValidFrom.ToUniversalTime(),
+            ValidTo = dto.ValidTo.Kind == DateTimeKind.Unspecified 
+                ? DateTime.SpecifyKind(dto.ValidTo, DateTimeKind.Utc) 
+                : dto.ValidTo.ToUniversalTime(),
+            CreatedAt = default,
+            UpdatedAt = default
         };
-
+        
         await _giftCardRepository.CreateAsync(giftCard);
+        await _dbContext.SaveChangesAsync();
 
-        return (IdentityResult.Success, _mapper.Map(giftCard));
+        return _mapper.Map(giftCard);
     }
 
-    public async Task<(IdentityResult Result, GiftCardDto? GiftCard)> UpdateAsync(int id, GiftCardUpdateDto dto)
+    public async Task<ErrorOr<GiftCardDto>> UpdateAsync(GiftCardUpdateDto dto)
     {
-        var giftCard = await _giftCardRepository.GetByIdAsync(id);
+        var validationResult = await _updateValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
+        {
+            return validationResult.ToErrors();
+        }
+
+        var giftCard = await _giftCardRepository.GetByIdAsync(dto.Id);
 
         if (giftCard is null)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "GiftCardNotFound",
-                Description = $"GiftCard with id '{id}' was not found."
-            }), null);
+            return Error.NotFound();
         }
 
-        if (dto.PriceReduction.HasValue && dto.PriceReduction >= 0.0m && giftCard.PriceReduction != dto.PriceReduction)
+        if (dto.PriceReduction.HasValue)
         {
             giftCard.PriceReduction = dto.PriceReduction.Value;
         }
@@ -80,28 +106,24 @@ public class GiftCardService : IGiftCardService
             }
         }
 
-        giftCard.UpdatedAt = DateTime.UtcNow;
-
         await _giftCardRepository.UpdateAsync(giftCard);
+        await _dbContext.SaveChangesAsync();
 
-        return (IdentityResult.Success, _mapper.Map(giftCard));
+        return _mapper.Map(giftCard);
     }
 
-    public async Task<IdentityResult> DeleteAsync(int id)
+    public async Task<ErrorOr<Success>> DeleteAsync(int id)
     {
         var giftCard = await _giftCardRepository.GetByIdAsync(id);
 
         if (giftCard is null)
         {
-            return IdentityResult.Failed(new IdentityError
-            {
-                Code = "GiftCardNotFound",
-                Description = $"GiftCard with id '{id}' was not found."
-            });
+            return Error.NotFound();
         }
 
         await _giftCardRepository.DeleteAsync(giftCard);
+        await _dbContext.SaveChangesAsync();
 
-        return IdentityResult.Success;
+        return Result.Success;
     }
 }

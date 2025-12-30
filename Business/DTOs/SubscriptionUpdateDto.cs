@@ -1,10 +1,10 @@
 ﻿using DAL.Models.Enums;
-using System.ComponentModel.DataAnnotations;
 
 namespace Business.DTOs;
 
 public class SubscriptionUpdateDto
 {
+    public required int Id { get; set; }
     public bool? Active { get; set; }
     public SubscriptionTimeframe? Timeframe { get; set; }
     public DateTime? LastRenewedAt { get; set; }

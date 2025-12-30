@@ -16,6 +16,7 @@ public class GiftCardRepository : IGiftCardRepository
     public Task<List<GiftCard>> GetAllAsync()
     {
         return _dbContext.GiftCards
+            .Include(g => g.Codes)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -23,6 +24,7 @@ public class GiftCardRepository : IGiftCardRepository
     public Task<GiftCard?> GetByIdAsync(int id)
     {
         return _dbContext.GiftCards
+            .Include(g => g.Codes)
             .FirstOrDefaultAsync(g => g.Id == id);
     }
 

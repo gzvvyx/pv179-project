@@ -1,6 +1,11 @@
 using Business.DTOs;
+using Business.Extensions;
 using Business.Mappers;
+using Business.Validators;
+using DAL.Data;
 using DAL.Models;
+using ErrorOr;
+using FluentValidation;
 using Infra.DTOs;
 using Infra.Repository;
 using Microsoft.AspNetCore.Identity;
@@ -10,11 +15,24 @@ namespace Business.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly UserManager<User> _userManager;
+    private readonly IValidator<UserCreateDto> _createValidator;
+    private readonly IValidator<UserUpdateDto> _updateValidator;
+    private readonly AppDbContext _dbContext;
     private readonly UserMapper _mapper = new();
 
-    public UserService(IUserRepository userRepository)
+    public UserService(
+        IUserRepository userRepository,
+        UserManager<User> userManager,
+        AppDbContext dbContext,
+        IValidator<UserCreateDto> createValidator,
+        IValidator<UserUpdateDto> updateValidator)
     {
         _userRepository = userRepository;
+        _userManager = userManager;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
+        _dbContext = dbContext;
     }
 
     public async Task<List<UserDto>> GetAllAsync()
@@ -35,8 +53,14 @@ public class UserService : IUserService
         return user is null ? null : _mapper.MapDetails(user);
     }
 
-    public async Task<(IdentityResult Result, UserDto? User)> CreateAsync(UserCreateDto dto)
+    public async Task<ErrorOr<UserDto>> CreateAsync(UserCreateDto dto)
     {
+        var validationResult = await _createValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
+        {
+            return validationResult.ToErrors();
+        }
+
         var user = new User
         {
             UserName = dto.UserName,
@@ -47,61 +71,125 @@ public class UserService : IUserService
 
         if (!result.Succeeded)
         {
-            return (result, null);
+            return result.ToErrors();
         }
 
-        return (result, _mapper.Map(user));
+        await _dbContext.SaveChangesAsync();
+
+        return _mapper.Map(user);
     }
 
-    public async Task<(IdentityResult Result, UserDto? User)> UpdateAsync(string id, UserUpdateDto dto)
+    public async Task<ErrorOr<UserDto>> UpdateAsync(string id, UserUpdateDto dto)
     {
-        var user = await _userRepository.GetByIdAsync(id);
-
-        if (user is null)
+        var validationResult = await _updateValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "UserNotFound",
-                Description = $"User with id '{id}' was not found."
-            }), null);
+            return validationResult.ToErrors();
         }
 
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user is null)
+        {
+            return Error.NotFound();
+        }
+
+        // Update username if provided
         if (!string.IsNullOrWhiteSpace(dto.UserName) &&
             !string.Equals(user.UserName, dto.UserName, StringComparison.Ordinal))
         {
             user.UserName = dto.UserName;
         }
 
+        // Update email if provided
         if (!string.IsNullOrWhiteSpace(dto.Email) &&
             !string.Equals(user.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
         {
             user.Email = dto.Email;
         }
 
-        var result = await _userRepository.UpdateAsync(user);
-
-        if (!result.Succeeded)
+        // Update user properties
+        var updateResult = await _userRepository.UpdateAsync(user);
+        if (!updateResult.Succeeded)
         {
-            return (result, null);
+            return updateResult.ToErrors();
         }
 
-        return (result, _mapper.Map(user));
+        // Handle password reset if provided
+        if (!string.IsNullOrWhiteSpace(dto.NewPassword))
+        {
+            var hasPassword = await _userManager.HasPasswordAsync(user);
+            if (hasPassword)
+            {
+                var removePasswordResult = await _userManager.RemovePasswordAsync(user);
+                if (!removePasswordResult.Succeeded)
+                {
+                    return removePasswordResult.Errors
+                        .Select(error => Error.Validation(nameof(dto.NewPassword), error.Description))
+                        .ToList();
+                }
+            }
+
+            var addPasswordResult = await _userManager.AddPasswordAsync(user, dto.NewPassword);
+            if (!addPasswordResult.Succeeded)
+            {
+                return addPasswordResult.Errors
+                    .Select(error => Error.Validation(nameof(dto.NewPassword), error.Description))
+                    .ToList();
+            }
+        }
+
+        // Handle role updates if provided
+        if (dto.Roles != null)
+        {
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            var rolesToAdd = dto.Roles.Except(currentRoles).ToList();
+            var rolesToRemove = currentRoles.Except(dto.Roles).ToList();
+
+            // Add new roles
+            foreach (var role in rolesToAdd)
+            {
+                var addRoleResult = await _userManager.AddToRoleAsync(user, role);
+                if (!addRoleResult.Succeeded)
+                {
+                    return addRoleResult.ToErrors();
+                }
+            }
+
+            // Remove roles
+            foreach (var role in rolesToRemove)
+            {
+                var removeRoleResult = await _userManager.RemoveFromRoleAsync(user, role);
+                if (!removeRoleResult.Succeeded)
+                {
+                    return removeRoleResult.ToErrors();
+                }
+            }
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        return _mapper.Map(user);
     }
 
-    public async Task<IdentityResult> DeleteAsync(string id)
+    public async Task<ErrorOr<Success>> DeleteAsync(string id)
     {
         var user = await _userRepository.GetByIdAsync(id);
 
         if (user is null)
         {
-            return IdentityResult.Failed(new IdentityError
-            {
-                Code = "UserNotFound",
-                Description = $"User with id '{id}' was not found."
-            });
+            return Error.NotFound();
         }
 
-        return await _userRepository.DeleteAsync(user);
+        var result = await _userRepository.DeleteAsync(user);
+
+        if (!result.Succeeded)
+        {
+            return result.ToErrors();
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        return Result.Success;
     }
 
     public async Task<List<UserDto>> GetByFilterAsync(UserFilterDto dto)

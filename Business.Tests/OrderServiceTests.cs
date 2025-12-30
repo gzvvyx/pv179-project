@@ -1,20 +1,40 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Business.DTOs;
 using Business.Services;
+using Business.Validators;
+using DAL.Data;
 using DAL.Models;
 using DAL.Models.Enums;
+using ErrorOr;
+using FluentValidation;
 using Infra.Repository;
-using Microsoft.AspNetCore.Identity;
 using Moq;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace Business.Tests;
 
 public class OrderServiceTests
 {
+    private readonly AppDbContext _dbContext;
+    private readonly IValidator<OrderCreateDto> _createValidator;
+    private readonly IValidator<OrderUpdateDto> _updateValidator;
+    private readonly Mock<IOrderRepository> _orderRepo;
+    private readonly Mock<IUserRepository> _userRepo;
+    private readonly OrderService _service;
+
+    public OrderServiceTests()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        _dbContext = new AppDbContext(options);
+        _createValidator = new OrderCreateDtoValidator();
+        _updateValidator = new OrderUpdateDtoValidator();
+        _orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
+        _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
+        _service = new OrderService(_orderRepo.Object, _userRepo.Object, _dbContext, _createValidator, _updateValidator);
+    }
+
     private static User CreateUser(string id) => new User
     {
         Id = id,
@@ -48,12 +68,9 @@ public class OrderServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_ReturnsError_WhenCreatorNotFound()
+    public async Task CreateAsync_ReturnsNotFound_WhenCreatorNotFound()
     {
         // Arrange
-        var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
         var dto = new OrderCreateDto
         {
@@ -62,30 +79,25 @@ public class OrderServiceTests
             Amount = 10m
         };
 
-        userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
+        _userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync((User?)null);
 
         // Act
-        var (result, order) = await service.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.Null(order);
-        var error = Assert.Single(result.Errors);
-        Assert.Equal("CreatorNotFound", error.Code);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.NotFound, result.FirstError.Type);
 
-        userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
-        userRepo.VerifyNoOtherCalls();
-        orderRepo.VerifyNoOtherCalls();
+        _userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
+        _userRepo.VerifyNoOtherCalls();
+        _orderRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task CreateAsync_ReturnsError_WhenOrdererNotFound()
+    public async Task CreateAsync_ReturnsNotFound_WhenOrdererNotFound()
     {
         // Arrange
-        var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
         var dto = new OrderCreateDto
         {
@@ -94,33 +106,28 @@ public class OrderServiceTests
             Amount = 15m
         };
 
-        userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
+        _userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync(CreateUser(dto.CreatorId));
-        userRepo.Setup(r => r.GetByIdAsync(dto.OrdererId))
+        _userRepo.Setup(r => r.GetByIdAsync(dto.OrdererId))
             .ReturnsAsync((User?)null);
 
         // Act
-        var (result, order) = await service.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.Null(order);
-        var error = Assert.Single(result.Errors);
-        Assert.Equal("OrdererNotFound", error.Code);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.NotFound, result.FirstError.Type);
 
-        userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
-        userRepo.Verify(r => r.GetByIdAsync(dto.OrdererId), Times.Once);
-        userRepo.VerifyNoOtherCalls();
-        orderRepo.VerifyNoOtherCalls();
+        _userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
+        _userRepo.Verify(r => r.GetByIdAsync(dto.OrdererId), Times.Once);
+        _userRepo.VerifyNoOtherCalls();
+        _orderRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task CreateAsync_Success_CreatesOrderAndReturnsDto()
     {
         // Arrange
-        var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
         var dto = new OrderCreateDto
         {
@@ -129,31 +136,36 @@ public class OrderServiceTests
             Amount = 25.5m
         };
 
-        userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
+        _userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync(CreateUser(dto.CreatorId));
-        userRepo.Setup(r => r.GetByIdAsync(dto.OrdererId))
+        _userRepo.Setup(r => r.GetByIdAsync(dto.OrdererId))
             .ReturnsAsync(CreateUser(dto.OrdererId));
 
         Order? createdOrder = null;
-        orderRepo.Setup(r => r.CreateAsync(It.IsAny<Order>()))
-            .Callback<Order>(o => createdOrder = o)
+        _orderRepo.Setup(r => r.CreateAsync(It.IsAny<Order>()))
+            .Callback<Order>(o =>
+            {
+                createdOrder = o;
+                var now = DateTime.UtcNow;
+                o.CreatedAt = now;
+                o.UpdatedAt = now;
+            })
             .Returns(Task.CompletedTask);
 
         var before = DateTime.UtcNow;
 
         // Act
-        var (result, orderDto) = await service.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(orderDto);
+        Assert.False(result.IsError);
+        var orderDto = result.Value;
         Assert.NotNull(createdOrder);
 
         Assert.Equal(dto.Amount, createdOrder!.Amount);
         Assert.Equal(dto.OrdererId, createdOrder.OrdererId);
         Assert.Equal(dto.CreatorId, createdOrder.CreatorId);
         Assert.Equal(OrderStatus.Pending, createdOrder.Status);
-
         Assert.Equal(createdOrder.Amount, orderDto!.Amount);
         Assert.Equal(createdOrder.OrdererId, orderDto.Orderer.Id);
         Assert.Equal(createdOrder.CreatorId, orderDto.Creator.Id);
@@ -162,20 +174,17 @@ public class OrderServiceTests
         Assert.True(orderDto.CreatedAt >= before);
         Assert.True(orderDto.UpdatedAt >= orderDto.CreatedAt);
 
-        userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
-        userRepo.Verify(r => r.GetByIdAsync(dto.OrdererId), Times.Once);
-        orderRepo.Verify(r => r.CreateAsync(It.IsAny<Order>()), Times.Once);
-        userRepo.VerifyNoOtherCalls();
-        orderRepo.VerifyNoOtherCalls();
+        _userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
+        _userRepo.Verify(r => r.GetByIdAsync(dto.OrdererId), Times.Once);
+        _orderRepo.Verify(r => r.CreateAsync(It.IsAny<Order>()), Times.Once);
+        _userRepo.VerifyNoOtherCalls();
+        _orderRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task GetAllAsync_ReturnsMappedList()
     {
         // Arrange
-        var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
         var orders = new List<Order>
         {
@@ -183,19 +192,19 @@ public class OrderServiceTests
             CreateOrder(2, "orderer-2", "creator-2", 20m, OrderStatus.Pending)
         };
 
-        orderRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(orders);
+        _orderRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(orders);
 
         // Act
-        var list = await service.GetAllAsync();
+        var list = await _service.GetAllAsync();
 
         // Assert
         Assert.Equal(2, list.Count);
         Assert.Contains(list, o => o.Id == 1 && o.Amount == 10m && o.Status == OrderStatus.Completed);
         Assert.Contains(list, o => o.Id == 2 && o.Amount == 20m && o.Status == OrderStatus.Pending);
 
-        orderRepo.Verify(r => r.GetAllAsync(), Times.Once);
-        orderRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _orderRepo.Verify(r => r.GetAllAsync(), Times.Once);
+        _orderRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -203,16 +212,15 @@ public class OrderServiceTests
     {
         var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
         var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
-        orderRepo.Setup(r => r.GetByIdAsync(123)).ReturnsAsync((Order?)null);
+        _orderRepo.Setup(r => r.GetByIdAsync(123)).ReturnsAsync((Order?)null);
 
-        var result = await service.GetByIdAsync(123);
+        var result = await _service.GetByIdAsync(123);
 
         Assert.Null(result);
-        orderRepo.Verify(r => r.GetByIdAsync(123), Times.Once);
-        orderRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _orderRepo.Verify(r => r.GetByIdAsync(123), Times.Once);
+        _orderRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -220,42 +228,40 @@ public class OrderServiceTests
     {
         var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
         var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
         var order = CreateOrder(7, "orderer-7", "creator-7", 77m, OrderStatus.Failed);
-        orderRepo.Setup(r => r.GetByIdAsync(7)).ReturnsAsync(order);
+        _orderRepo.Setup(r => r.GetByIdAsync(7)).ReturnsAsync(order);
 
-        var dto = await service.GetByIdAsync(7);
+        var dto = await _service.GetByIdAsync(7);
 
         Assert.NotNull(dto);
         Assert.Equal(order.Id, dto!.Id);
         Assert.Equal(order.Amount, dto.Amount);
         Assert.Equal(order.Status, dto.Status);
 
-        orderRepo.Verify(r => r.GetByIdAsync(7), Times.Once);
-        orderRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _orderRepo.Verify(r => r.GetByIdAsync(7), Times.Once);
+        _orderRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task UpdateAsync_ReturnsError_WhenOrderNotFound()
+    public async Task UpdateAsync_ReturnsNotFound_WhenOrderNotFound()
     {
         var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
         var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
-        orderRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync((Order?)null);
+        var dto = new OrderUpdateDto { Id = 5, Amount = 100m, Status = OrderStatus.Completed };
 
-        var (result, updated) = await service.UpdateAsync(5, new OrderUpdateDto { Amount = 100m, Status = OrderStatus.Completed });
+        _orderRepo.Setup(r => r.GetByIdAsync(dto.Id)).ReturnsAsync((Order?)null);
 
-        Assert.False(result.Succeeded);
-        Assert.Null(updated);
-        var error = Assert.Single(result.Errors);
-        Assert.Equal("OrderNotFound", error.Code);
+        var result = await _service.UpdateAsync(dto);
 
-        orderRepo.Verify(r => r.GetByIdAsync(5), Times.Once);
-        orderRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.NotFound, result.FirstError.Type);
+
+        _orderRepo.Verify(r => r.GetByIdAsync(dto.Id), Times.Once);
+        _orderRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -263,54 +269,49 @@ public class OrderServiceTests
     {
         var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
         var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
         var existing = CreateOrder(9, "orderer-9", "creator-9", 10m, OrderStatus.Pending, DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(-1));
-        orderRepo.Setup(r => r.GetByIdAsync(9)).ReturnsAsync(existing);
+        _orderRepo.Setup(r => r.GetByIdAsync(9)).ReturnsAsync(existing);
 
         Order? saved = null;
-        orderRepo.Setup(r => r.UpdateAsync(It.IsAny<Order>()))
+        _orderRepo.Setup(r => r.UpdateAsync(It.IsAny<Order>()))
             .Callback<Order>(o => saved = o)
             .Returns(Task.CompletedTask);
 
-        var update = new OrderUpdateDto { Amount = 50m, Status = OrderStatus.Completed };
+        var update = new OrderUpdateDto { Id = 9, Amount = 50m, Status = OrderStatus.Completed };
 
-        var (result, dto) = await service.UpdateAsync(9, update);
+        var result = await _service.UpdateAsync(update);
 
-        Assert.True(result.Succeeded);
-        Assert.NotNull(dto);
+        Assert.False(result.IsError);
         Assert.NotNull(saved);
         Assert.Equal(50m, saved!.Amount);
         Assert.Equal(OrderStatus.Completed, saved.Status);
-        Assert.True(saved.UpdatedAt >= saved.CreatedAt);
 
-        Assert.Equal(saved.Amount, dto!.Amount);
-        Assert.Equal(saved.Status, dto.Status);
+        Assert.Equal(saved.Amount, result.Value.Amount);
+        Assert.Equal(saved.Status, result.Value.Status);
 
-        orderRepo.Verify(r => r.GetByIdAsync(9), Times.Once);
-        orderRepo.Verify(r => r.UpdateAsync(It.IsAny<Order>()), Times.Once);
-        orderRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _orderRepo.Verify(r => r.GetByIdAsync(9), Times.Once);
+        _orderRepo.Verify(r => r.UpdateAsync(It.IsAny<Order>()), Times.Once);
+        _orderRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task DeleteAsync_ReturnsError_WhenOrderNotFound()
+    public async Task DeleteAsync_ReturnsNotFound_WhenOrderNotFound()
     {
         var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
         var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
-        orderRepo.Setup(r => r.GetByIdAsync(3)).ReturnsAsync((Order?)null);
+        _orderRepo.Setup(r => r.GetByIdAsync(3)).ReturnsAsync((Order?)null);
 
-        var result = await service.DeleteAsync(3);
+        var result = await _service.DeleteAsync(3);
 
-        Assert.False(result.Succeeded);
-        var error = Assert.Single(result.Errors);
-        Assert.Equal("OrderNotFound", error.Code);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.NotFound, result.FirstError.Type);
 
-        orderRepo.Verify(r => r.GetByIdAsync(3), Times.Once);
-        orderRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _orderRepo.Verify(r => r.GetByIdAsync(3), Times.Once);
+        _orderRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -318,20 +319,19 @@ public class OrderServiceTests
     {
         var orderRepo = new Mock<IOrderRepository>(MockBehavior.Strict);
         var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new OrderService(orderRepo.Object, userRepo.Object);
 
         var existing = CreateOrder(11, "orderer-11", "creator-11", 99m, OrderStatus.Pending);
-        orderRepo.Setup(r => r.GetByIdAsync(11)).ReturnsAsync(existing);
-        orderRepo.Setup(r => r.DeleteAsync(existing)).Returns(Task.CompletedTask);
+        _orderRepo.Setup(r => r.GetByIdAsync(11)).ReturnsAsync(existing);
+        _orderRepo.Setup(r => r.DeleteAsync(existing)).Returns(Task.CompletedTask);
 
-        var result = await service.DeleteAsync(11);
+        var result = await _service.DeleteAsync(11);
 
-        Assert.True(result.Succeeded);
+        Assert.False(result.IsError);
 
-        orderRepo.Verify(r => r.GetByIdAsync(11), Times.Once);
-        orderRepo.Verify(r => r.DeleteAsync(existing), Times.Once);
-        orderRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _orderRepo.Verify(r => r.GetByIdAsync(11), Times.Once);
+        _orderRepo.Verify(r => r.DeleteAsync(existing), Times.Once);
+        _orderRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 }
 

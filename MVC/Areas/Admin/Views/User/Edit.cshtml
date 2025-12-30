@@ -1,0 +1,117 @@
+@model EditUserViewModel
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">Edit User: @Model.User.UserName</h1>
+            <p class="text-base-content/70 mt-2">Manage user</p>
+        </div>
+        <a asp-action="Index" class="btn btn-ghost">
+            <icon name="arrow-left" />
+            Back to Users
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-error mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form asp-action="Edit" asp-route-id="@Model.User.Id" method="post">
+                @Html.AntiForgeryToken()
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="form-control">
+                        <label class="label">User ID</label>
+                        <input type="text" value="@Model.User.Id" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Username</label>
+                        <input type="text" value="@Model.User.UserName" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Email</label>
+                        <input type="text" value="@Model.User.Email" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Roles</label>
+                        <div class="space-y-2 mt-2">
+                            @foreach (var role in Model.AvailableRoles)
+                            {
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" 
+                                           name="SelectedRoles" 
+                                           value="@role.RoleName"
+                                           checked="@role.IsSelected"
+                                           class="checkbox checkbox-primary" />
+                                    <span class="label-text">@role.RoleName</span>
+                                </label>
+                            }
+                        </div>
+                        @if (!ViewData.ModelState.IsValid && ViewData.ModelState[""] != null)
+                        {
+                            <div class="text-error text-sm mt-2">
+                                @foreach (var error in ViewData.ModelState[""].Errors)
+                                {
+                                    <div>@error.ErrorMessage</div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="divider">Password Reset</div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">New Password - Leave blank to keep current password</span>
+                        </label>
+                        <input type="password" asp-for="NewPassword" class="input input-bordered block" />
+                        <span asp-validation-for="NewPassword" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Confirm New Password</span>
+                        </label>
+                        <input type="password" asp-for="ConfirmPassword" class="input input-bordered block" />
+                        <span asp-validation-for="ConfirmPassword" class="text-error text-sm"></span>
+                    </div>
+                </div>
+
+                <div class="form-control mt-6">
+                    <div class="flex gap-4 justify-end">
+                        <a asp-action="Index" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <icon name="save" />
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

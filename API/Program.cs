@@ -1,9 +1,4 @@
-using Business.DI;
-using Infra.DI;
-using DAL.Data;
-using DAL.Models;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using Common.DI;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Templates.Themes;
@@ -61,34 +56,11 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-
-// Get connection string from appsettings.json
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-// Register DbContext with Npgsql provider
-builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-builder.Services.AddIdentity<User, IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
-
-builder.Services.AddBusinessServices();
-builder.Services.AddInfraServices();
+builder.Services.AddPv179Core(builder.Configuration);
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    await db.Database.MigrateAsync();
-
-    if (app.Environment.IsDevelopment())
-    {
-        await DAL.Seeds.BogusSeeder.SeedAsync(db);
-    }
-}
+await app.MigrateAndSeedAsync();
 
 
 // Configure the HTTP request pipeline.

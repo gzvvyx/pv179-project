@@ -1,5 +1,7 @@
-﻿using Business.DTOs;
+﻿using API.Extensions;
+using Business.DTOs;
 using Business.Services;
+using Infra.Repository;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -10,11 +12,19 @@ public class GiftCardController : ControllerBase
 {
     private readonly ILogger<GiftCardController> _logger;
     private readonly IGiftCardService _GiftCardService;
+    private readonly IGiftCardCodeService _giftCardCodeService;
+    private readonly IGiftCardRepository _giftCardRepository;
 
-    public GiftCardController(ILogger<GiftCardController> logger, IGiftCardService GiftCardService)
+    public GiftCardController(
+        ILogger<GiftCardController> logger, 
+        IGiftCardService GiftCardService,
+        IGiftCardCodeService giftCardCodeService,
+        IGiftCardRepository giftCardRepository)
     {
         _logger = logger;
         _GiftCardService = GiftCardService;
+        _giftCardCodeService = giftCardCodeService;
+        _giftCardRepository = giftCardRepository;
     }
 
     [HttpGet(Name = "GetGiftCards")]
@@ -39,42 +49,23 @@ public class GiftCardController : ControllerBase
     [HttpPost(Name = "CreateGiftCard")]
     public async Task<ActionResult<GiftCardDto>> Create([FromBody] GiftCardCreateDto dto)
     {
-        if (!ModelState.IsValid)
+        var result = await _GiftCardService.CreateAsync(dto);
+
+        if (result.IsError)
         {
-            return ValidationProblem(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, GiftCard) = await _GiftCardService.CreateAsync(dto);
-
-        if (!result.Succeeded || GiftCard is null)
-        {
-            return BadRequest(result.Errors.Select(error => error.Description));
-        }
-
-        return CreatedAtRoute("GetGiftCardById", new { id = GiftCard.Id }, GiftCard);
+        return CreatedAtRoute("GetGiftCardById", new { id = result.Value.Id }, result.Value);
     }
 
     [HttpPut("{id:int}", Name = "UpdateGiftCard")]
     public async Task<ActionResult<GiftCardDto>> Update(int id, [FromBody] GiftCardUpdateDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
+        dto.Id = id;
+        var result = await _GiftCardService.UpdateAsync(dto);
 
-        var (result, GiftCard) = await _GiftCardService.UpdateAsync(id, dto);
-
-        if (result.Succeeded || GiftCard is not null)
-        {
-            return Ok(GiftCard);
-        }
-
-        if (result.Errors.Any(error => error.Code == "GiftCardNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return result.ToActionResult();
     }
 
     [HttpDelete("{id:int}", Name = "DeleteGiftCard")]
@@ -82,16 +73,41 @@ public class GiftCardController : ControllerBase
     {
         var result = await _GiftCardService.DeleteAsync(id);
 
-        if (result.Succeeded)
-        {
-            return NoContent();
-        }
+        return result.ToActionResult();
+    }
 
-        if (result.Errors.Any(error => error.Code == "GiftCardNotFound"))
+    [HttpPost("{id:int}/codes")]
+    public async Task<ActionResult<GiftCardCodeDto>> CreateCode(int id, [FromBody] GiftCardCodeCreateDto dto)
+    {
+        var giftCardEntity = await _giftCardRepository.GetByIdAsync(id);
+        if (giftCardEntity == null)
         {
             return NotFound();
         }
 
-        return BadRequest(result.Errors.Select(error => error.Description));
+        dto.GiftCardId = id;
+        dto.GiftCard = giftCardEntity;
+
+        var result = await _giftCardCodeService.CreateAsync(dto);
+
+        if (result.IsError)
+        {
+            return result.ToActionResult();
+        }
+
+        return CreatedAtRoute("GetGiftCardCodeByCode", new { code = result.Value.Code }, result.Value);
+    }
+
+    [HttpDelete("{id:int}/codes/{code}")]
+    public async Task<IActionResult> DeleteCode(int id, string code)
+    {
+        if (string.IsNullOrEmpty(code))
+        {
+            return BadRequest("Code is required.");
+        }
+
+        var result = await _giftCardCodeService.DeleteAsync(code);
+
+        return result.ToActionResult();
     }
 }

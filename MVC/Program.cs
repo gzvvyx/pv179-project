@@ -1,12 +1,11 @@
-using Business.DI;
+using Business.Validators;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Common.DI;
-using DAL.Data;
-using DAL.Models;
-using Infra.DI;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using Microsoft.EntityFrameworkCore;
 using MVC.Services;
+using MVC.Areas.Admin.Factories;
 using Serilog;
 using SerilogTracing;
 using SerilogTracing.Expressions;
@@ -28,19 +27,22 @@ Log.Information("Starting MVC application...");
 builder.Logging.ClearProviders();
 builder.Host.UseSerilog();
 
-// Get connection string from appsettings.json
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddPv179Core(builder.Configuration);
 
-// Register DbContext with Npgsql provider
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+var mvcBuilder = builder.Services.AddControllersWithViews()
+    .AddFluentValidation(fv =>
+    {
+        fv.RegisterValidatorsFromAssemblyContaining<OrderUpdateDtoValidator>();
+        fv.ImplicitlyValidateChildProperties = true;
+    });
 
-builder.Services.AddIdentity<User, IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
-// Add services to the container.
-builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
+var razorPagesBuilder = builder.Services.AddRazorPages();
+if (builder.Environment.IsDevelopment())
+{
+    mvcBuilder.AddRazorRuntimeCompilation();
+    razorPagesBuilder.AddRazorRuntimeCompilation();
+}
+
 builder.Services.Configure<IdentityOptions>(options =>
 {
     // Password settings.
@@ -73,26 +75,15 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.AddSingleton<IEmailSender, EmailSender>();
-
-builder.Services.AddBusinessServices();
-builder.Services.AddInfraServices();
-
-// Current user service
-builder.Services.AddCurrentUser();
+builder.Services.AddScoped<IEditOrderViewModelFactory, EditOrderViewModelFactory>();
+builder.Services.AddScoped<IEditUserViewModelFactory, EditUserViewModelFactory>();
+builder.Services.AddScoped<IEditPlaylistViewModelFactory, EditPlaylistViewModelFactory>();
+builder.Services.AddScoped<IEditVideoViewModelFactory, EditVideoViewModelFactory>();
+builder.Services.AddScoped<IEditSubscriptionViewModelFactory, EditSubscriptionViewModelFactory>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    await db.Database.MigrateAsync();
-
-    if (app.Environment.IsDevelopment())
-    {
-        await DAL.Seeds.BogusSeeder.SeedAsync(db);
-    }
-}
+await app.MigrateAndSeedAsync();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -114,8 +105,13 @@ app.UseAuthorization();
 app.UseSerilogRequestLogging();
 
 app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
 app.MapRazorPages();
 
 app.Run();
