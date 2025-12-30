@@ -1,8 +1,11 @@
 ﻿using Business.DTOs;
+using Business.Extensions;
 using Business.Mappers;
+using DAL.Data;
 using DAL.Models;
+using ErrorOr;
+using FluentValidation;
 using Infra.Repository;
-using Microsoft.AspNetCore.Identity;
 
 namespace Business.Services
 {
@@ -11,13 +14,25 @@ namespace Business.Services
         private readonly ICommentRepository _commentRepository;
         private readonly IVideoRepository _videoRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IValidator<CommentCreateDto> _createValidator;
+        private readonly IValidator<CommentUpdateDto> _updateValidator;
+        private readonly AppDbContext _dbContext;
         private readonly CommentMapper _mapper = new();
 
-        public CommentService(ICommentRepository commentRepository, IVideoRepository videoRepository, IUserRepository userRepository)
+        public CommentService(
+            ICommentRepository commentRepository, 
+            IVideoRepository videoRepository, 
+            IUserRepository userRepository,
+            AppDbContext dbContext,
+            IValidator<CommentCreateDto> createValidator,
+            IValidator<CommentUpdateDto> updateValidator)
         {
             _commentRepository = commentRepository;
             _videoRepository = videoRepository;
             _userRepository = userRepository;
+            _dbContext = dbContext;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
 
         public async Task<List<CommentDto>> GetAllAsync()
@@ -29,32 +44,34 @@ namespace Business.Services
         public async Task<CommentDto?> GetByIdAsync(int id)
         {
             var comment = await _commentRepository.GetByIdAsync(id);
-            return comment is null ? null : _mapper.Map(comment);
+            return comment == null ? null : _mapper.Map(comment);
         }
 
-        public async Task<(IdentityResult Result, CommentDto? Comment)> CreateAsync(CommentCreateDto dto)
+        public async Task<List<CommentDto>> GetByVideoIdAsync(int videoId)
         {
-            var creator = await _userRepository.GetByIdAsync(dto.AuthorId);
-            if (creator is null)
+            var comments = await _commentRepository.GetByVideoIdAsync(videoId);
+            return _mapper.Map(comments);
+        }
+
+        public async Task<ErrorOr<CommentDto>> CreateAsync(CommentCreateDto dto)
+        {
+            var validationResult = await _createValidator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
             {
-                return (IdentityResult.Failed(new IdentityError
-                {
-                    Code = "CreatorNotFound",
-                    Description = $"Creator with id '{dto.AuthorId}' was not found."
-                }), null);
+                return validationResult.ToErrors();
+            }
+
+            var author = await _userRepository.GetByIdAsync(dto.AuthorId);
+            if (author is null)
+            {
+                return Error.NotFound();
             }
 
             var video = await _videoRepository.GetByIdAsync(dto.VideoId);
             if (video is null)
             {
-                return (IdentityResult.Failed(new IdentityError
-                {
-                    Code = "VideoNotFound",
-                    Description = $"Video with id '{dto.VideoId}' was not found."
-                }), null);
+                return Error.NotFound();
             }
-
-            var timestamp = DateTime.UtcNow;
 
             var comment = new Comment
             {
@@ -62,47 +79,55 @@ namespace Business.Services
                 VideoId = dto.VideoId,
                 Video = video,
                 AuthorId = dto.AuthorId,
-                Author = creator,
-                Content = dto.Content,
-                CreatedAt = timestamp,
-                UpdatedAt = timestamp
+                Author = author,
+                Content = dto.Content!,
+                CreatedAt = default,
+                UpdatedAt = default
             };
 
             await _commentRepository.CreateAsync(comment);
+            await _dbContext.SaveChangesAsync();
 
-            return (IdentityResult.Success, _mapper.Map(comment));
+            return _mapper.Map(comment);
         }
 
-        public async Task<(IdentityResult Result, CommentDto? Comment)> UpdateAsync(int id, CommentUpdateDto dto)
+        public async Task<ErrorOr<CommentDto>> UpdateAsync(CommentUpdateDto dto)
         {
-            var comment = await _commentRepository.GetByIdAsync(id);
+            var validationResult = await _updateValidator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
+            {
+                return validationResult.ToErrors();
+            }
+
+            var comment = await _commentRepository.GetByIdAsync(dto.Id);
             if (comment is null)
             {
-                return (IdentityResult.Failed(new IdentityError
-                {
-                    Code = "CommentNotFound",
-                    Description = $"Comment with id '{id}' was not found."
-                }), null);
+                return Error.NotFound();
             }
-            comment.Content = dto.Content;
-            comment.UpdatedAt = DateTime.UtcNow;
+
+            if (dto.Content != null)
+            {
+                comment.Content = dto.Content;
+            }
+
             await _commentRepository.UpdateAsync(comment);
-            return (IdentityResult.Success, _mapper.Map(comment));
+            await _dbContext.SaveChangesAsync();
+
+            return _mapper.Map(comment);
         }
 
-        public async Task<IdentityResult> DeleteAsync(int id)
+        public async Task<ErrorOr<Success>> DeleteAsync(int id)
         {
             var comment = await _commentRepository.GetByIdAsync(id);
             if (comment is null)
             {
-                return IdentityResult.Failed(new IdentityError
-                {
-                    Code = "CommentNotFound",
-                    Description = $"Comment with id '{id}' was not found."
-                });
+                return Error.NotFound();
             }
+
             await _commentRepository.DeleteAsync(comment);
-            return IdentityResult.Success;
+            await _dbContext.SaveChangesAsync();
+
+            return Result.Success;
         }
     }
 }

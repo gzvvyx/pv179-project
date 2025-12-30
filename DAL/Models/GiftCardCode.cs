@@ -18,8 +18,8 @@ public class GiftCardCode
     [Required]
     public required GiftCard GiftCard { get; set; }
 
+    [ForeignKey(nameof(Order))]
     public int? OrderId { get; set; }
 
-    [ForeignKey(nameof(OrderId))]
     public Order? Order { get; set; }
 }

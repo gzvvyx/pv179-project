@@ -361,7 +361,7 @@
                         @if (Model.Videos.TotalPages > 1)
                         {
                             <div class="mt-6">
-                                <partial name="_SearchPagination" model="@(new { Section = "video", PagedResult = Model.Videos, Query = Model.Query })" />
+                                <partial name="_SearchPagination" model="@(new pv179.Models.SearchPaginationViewModel { Section = "video", Query = Model.Query, PageNumber = Model.Videos.PageNumber, TotalPages = Model.Videos.TotalPages, TotalCount = Model.Videos.TotalCount, PageSize = Model.Videos.PageSize })" />
                             </div>
                         }
                     </div>
@@ -386,7 +386,7 @@
                         @if (Model.Playlists.TotalPages > 1)
                         {
                             <div class="mt-6">
-                                <partial name="_SearchPagination" model="@(new { Section = "playlist", PagedResult = Model.Playlists, Query = Model.Query })" />
+                                <partial name="_SearchPagination" model="@(new pv179.Models.SearchPaginationViewModel { Section = "playlist", Query = Model.Query, PageNumber = Model.Playlists.PageNumber, TotalPages = Model.Playlists.TotalPages, TotalCount = Model.Playlists.TotalCount, PageSize = Model.Playlists.PageSize })" />
                             </div>
                         }
                     </div>
@@ -411,7 +411,7 @@
                         @if (Model.Creators.TotalPages > 1)
                         {
                             <div class="mt-6">
-                                <partial name="_SearchPagination" model="@(new { Section = "creator", PagedResult = Model.Creators, Query = Model.Query })" />
+                                <partial name="_SearchPagination" model="@(new pv179.Models.SearchPaginationViewModel { Section = "creator", Query = Model.Query, PageNumber = Model.Creators.PageNumber, TotalPages = Model.Creators.TotalPages, TotalCount = Model.Creators.TotalCount, PageSize = Model.Creators.PageSize })" />
                             </div>
                         }
                     </div>

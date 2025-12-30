@@ -1,0 +1,94 @@
+@model List<UserWithRolesViewModel>
+@using DAL.Authorization
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">User Management</h1>
+            <p class="text-base-content/70 mt-2">Manage users</p>
+        </div>
+        <a asp-route="AdminIndex" class="btn btn-ghost">
+            <icon name="arrow-left" />
+            Back to Dashboard
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-error mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Roles</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="font-bold">@item.User.UserName</div>
+                                    <div class="text-sm opacity-50">ID: @item.User.Id</div>
+                                </td>
+                                <td>@item.User.Email</td>
+                                <td>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach (var role in item.Roles)
+                                        {
+                                            <span class="badge badge-primary">@role</span>
+                                        }
+                                        @if (!item.Roles.Any())
+                                        {
+                                            <span class="badge badge-ghost">No roles</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.User.Id" class="btn btn-sm btn-primary">
+                                        <icon name="edit" />
+                                        Edit
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center py-8">
+                                    <p class="text-base-content/70">No users found</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+

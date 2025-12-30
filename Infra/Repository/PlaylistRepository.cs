@@ -37,25 +37,21 @@ namespace Infra.Repository
             }
 
             await _dbContext.Playlists.AddAsync(playlist);
-            await _dbContext.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(Playlist playlist)
         {
-
             if (playlist.Creator is not null)
             {
                 _dbContext.Attach(playlist.Creator);
             }
 
             _dbContext.Playlists.Update(playlist);
-            await _dbContext.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(Playlist playlist)
         {
             _dbContext.Playlists.Remove(playlist);
-            await _dbContext.SaveChangesAsync();
         }
 
         public async Task<List<Playlist>> GetByFilterAsync(PlaylistFilterDto dto)

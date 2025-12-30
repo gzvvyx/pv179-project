@@ -26,3 +26,13 @@ public class SearchAllResultsViewModel
     public List<CategoryDto> AvailableCategories { get; set; } = new();
     public List<int> SelectedCategoryIds { get; set; } = new();
 }
+
+public class SearchPaginationViewModel
+{
+    public string Section { get; set; } = string.Empty;
+    public string Query { get; set; } = string.Empty;
+    public int PageNumber { get; set; }
+    public int TotalPages { get; set; }
+    public int TotalCount { get; set; }
+    public int PageSize { get; set; }
+}

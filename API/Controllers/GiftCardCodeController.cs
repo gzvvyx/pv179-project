@@ -1,4 +1,5 @@
-﻿using Business.DTOs;
+﻿using API.Extensions;
+using Business.DTOs;
 using Business.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,7 +24,7 @@ public class GiftCardCodeController : ControllerBase
         return await _giftCardCodeService.GetAllAsync();
     }
 
-    [HttpGet("{id:int}", Name = "GetGiftCardCodeById")]
+    [HttpGet("{code}", Name = "GetGiftCardCodeByCode")]
     public async Task<ActionResult<GiftCardCodeDto>> GetByCode(string code)
     {
         var giftCardCode = await _giftCardCodeService.GetByCodeAsync(code);
@@ -37,42 +38,27 @@ public class GiftCardCodeController : ControllerBase
     [HttpPost(Name = "CreateGiftCardCode")]
     public async Task<ActionResult<GiftCardCodeDto>> Create([FromBody] GiftCardCodeCreateDto dto)
     {
-        if (!ModelState.IsValid)
+        var result = await _giftCardCodeService.CreateAsync(dto);
+
+        if (result.IsError)
         {
-            return ValidationProblem(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, giftCardCode) = await _giftCardCodeService.CreateAsync(dto);
-
-        if (!result.Succeeded || giftCardCode is null)
-        {
-            return BadRequest(result.Errors.Select(error => error.Description));
-        }
-
-        return CreatedAtRoute("GetGiftCardCodeById", new { code = giftCardCode.Code }, giftCardCode);
+        return CreatedAtRoute("GetGiftCardCodeByCode", new { code = result.Value.Code }, result.Value);
     }
 
     [HttpPut("{code}", Name = "UpdateGiftCardCode")]
     public async Task<ActionResult<GiftCardCodeDto>> Update(string code, [FromBody] GiftCardCodeUpdateDto dto)
     {
-        if (!ModelState.IsValid)
+        var result = await _giftCardCodeService.UpdateAsync(code, dto);
+
+        if (result.IsError)
         {
-            return ValidationProblem(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, giftCardCode) = await _giftCardCodeService.UpdateAsync(code, dto);
-
-        if (result.Succeeded || giftCardCode is not null)
-        {
-            return Ok(giftCardCode);
-        }
-
-        if (result.Errors.Any(error => error.Code == "GiftCardCodeNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return Ok(result.Value);
     }
 
     [HttpDelete("{code}", Name = "DeleteGiftCardCode")]
@@ -80,16 +66,11 @@ public class GiftCardCodeController : ControllerBase
     {
         var result = await _giftCardCodeService.DeleteAsync(code);
 
-        if (result.Succeeded)
+        if (result.IsError)
         {
-            return NoContent();
+            return result.ToActionResult();
         }
 
-        if (result.Errors.Any(error => error.Code == "GiftCardCodeNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return NoContent();
     }
 }

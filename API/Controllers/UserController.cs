@@ -1,4 +1,5 @@
-﻿using Business.DTOs;
+﻿using API.Extensions;
+using Business.DTOs;
 using Business.Services;
 using Infra.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -46,45 +47,61 @@ public class UserController : ControllerBase
         return Ok(user);
     }
 
+    [HttpGet("{id}/details", Name = "GetUserDetailsById")]
+    public async Task<ActionResult<UserDetailsDto>> GetDetailsById(string id)
+    {
+        var userDetails = await _userService.GetDetailsByIdAsync(id);
+        if (userDetails is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(userDetails);
+    }
+
+    [HttpGet("paged", Name = "GetUsersPaged")]
+    public async Task<ActionResult<PagedResultDto<UserDto>>> GetPaged(
+        [FromQuery] string? userName,
+        [FromQuery] string? email,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 12,
+        [FromQuery] string? sortBy = "UserName",
+        [FromQuery] bool sortDescending = false
+    )
+    {
+        var filter = new UserFilterDto
+        {
+            UserName = userName,
+            Email = email,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortDescending = sortDescending
+        };
+
+        var result = await _userService.GetByFilterPagedAsync(filter);
+        return Ok(result);
+    }
+
     [HttpPost(Name = "CreateUser")]
     public async Task<ActionResult<UserDto>> Create([FromBody] UserCreateDto dto)
     {
-        if (!ModelState.IsValid)
+        var result = await _userService.CreateAsync(dto);
+
+        if (result.IsError)
         {
-            return ValidationProblem(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, user) = await _userService.CreateAsync(dto);
-
-        if (!result.Succeeded || user is null)
-        {
-            return BadRequest(result.Errors.Select(error => error.Description));
-        }
-
-        return CreatedAtRoute("GetUserById", new { id = user.Id }, user);
+        return CreatedAtRoute("GetUserById", new { id = result.Value.Id }, result.Value);
     }
 
     [HttpPut("{id}", Name = "UpdateUser")]
     public async Task<ActionResult<UserDto>> Update(string id, [FromBody] UserUpdateDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
+        var result = await _userService.UpdateAsync(id, dto);
 
-        var (result, user) = await _userService.UpdateAsync(id, dto);
-
-        if (result.Succeeded && user is not null)
-        {
-            return Ok(user);
-        }
-
-        if (result.Errors.Any(error => error.Code == "UserNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return result.ToActionResult();
     }
 
     [HttpDelete("{id}", Name = "DeleteUser")]
@@ -92,16 +109,6 @@ public class UserController : ControllerBase
     {
         var result = await _userService.DeleteAsync(id);
 
-        if (result.Succeeded)
-        {
-            return NoContent();
-        }
-
-        if (result.Errors.Any(error => error.Code == "UserNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return result.ToActionResult();
     }
 }

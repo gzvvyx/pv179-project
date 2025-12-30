@@ -1,0 +1,86 @@
+@model List<SubscriptionIndexViewModel>
+@{
+    ViewData["Title"] = "Subscription Management";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">Subscription Management</h1>
+            <p class="text-base-content/70 mt-2">View and manage all subscriptions</p>
+        </div>
+        <a asp-route="AdminIndex" class="btn btn-ghost">
+            <icon name="arrow-left" />
+            Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Orderer</th>
+                            <th>Creator</th>
+                            <th>Active</th>
+                            <th>Timeframe</th>
+                            <th>Subscribed At</th>
+                            <th>Expires At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="font-bold">#@item.Id</div>
+                                </td>
+                                <td>
+                                    <div class="font-medium">@item.OrdererUserName</div>
+                                    <div class="text-sm opacity-50">@item.OrdererId</div>
+                                </td>
+                                <td>
+                                    <div class="font-medium">@item.CreatorUserName</div>
+                                    <div class="text-sm opacity-50">@item.CreatorId</div>
+                                </td>
+                                <td>
+                                    @{
+                                        var activeClass = item.Active ? "badge-success" : "badge-error";
+                                    }
+                                    <span class="badge @activeClass">@(item.Active ? "Active" : "Inactive")</span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info">@item.Timeframe</span>
+                                </td>
+                                <td>
+                                    <div class="text-sm">@item.SubscribedAt.ToLocalTime().ToString("g")</div>
+                                </td>
+                                <td>
+                                    <div class="text-sm">@item.ExpiresAt.ToLocalTime().ToString("g")</div>
+                                </td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">
+                                        <icon name="edit" />
+                                        Edit
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-8">
+                                    <p class="text-base-content/70">No subscriptions found</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+

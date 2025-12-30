@@ -1,4 +1,5 @@
-﻿using Business.DTOs;
+﻿using API.Extensions;
+using Business.DTOs;
 using Business.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,6 +25,12 @@ public class SubscriptionController : ControllerBase
         return await _subscriptionService.GetAllAsync();
     }
 
+    [HttpGet("with-users", Name = "GetSubscriptionsWithUsers")]
+    public async Task<IEnumerable<SubscriptionWithUsersDto>> GetAllWithUsers()
+    {
+        return await _subscriptionService.GetAllWithUsersAsync();
+    }
+
     [HttpGet("{id:int}", Name = "GetSubscriptionById")]
     public async Task<ActionResult<SubscriptionDto>> GetById(int id)
     {
@@ -40,42 +47,28 @@ public class SubscriptionController : ControllerBase
     [HttpPost(Name = "CreateSubscription")]
     public async Task<ActionResult<SubscriptionDto>> Create([FromBody] SubscriptionCreateDto subscriptionDto)
     {
-        if (!ModelState.IsValid)
+        var result = await _subscriptionService.CreateAsync(subscriptionDto);
+
+        if (result.IsError)
         {
-            return new BadRequestObjectResult(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, subscription) = await _subscriptionService.CreateAsync(subscriptionDto);
-
-        if (!result.Succeeded || subscription is null)
-        {
-            return BadRequest(result.Errors.Select(error => error.Description));
-        }
-
-        return CreatedAtRoute("GetSubscriptionById", new { id = subscription.Id }, subscription);
+        return CreatedAtRoute("GetSubscriptionById", new { id = result.Value.Id }, result.Value);
     }
 
     [HttpPut("{id:int}", Name = "UpdateSubscription")]
     public async Task<ActionResult<SubscriptionDto>> Update(int id, [FromBody] SubscriptionUpdateDto subscriptionDto)
     {
-        if (!ModelState.IsValid)
+        subscriptionDto.Id = id;
+        var result = await _subscriptionService.UpdateAsync(subscriptionDto);
+
+        if (result.IsError)
         {
-            return new BadRequestObjectResult(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, subscription) = await _subscriptionService.UpdateAsync(id, subscriptionDto);
-
-        if (result.Succeeded || subscription is not null)
-        {
-            return Ok(subscription);
-        }
-
-        if (result.Errors.Any(e => e.Code == "SubscriptionNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return Ok(result.Value);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteSubscription")]
@@ -83,16 +76,6 @@ public class SubscriptionController : ControllerBase
     {
         var result = await _subscriptionService.DeleteAsync(id);
 
-        if (result.Succeeded)
-        {
-            return NoContent();
-        }
-
-        if (result.Errors.Any(e => e.Code == "SubscriptionNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return result.ToActionResult();
     }
 }

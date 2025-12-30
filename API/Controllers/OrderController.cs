@@ -1,4 +1,7 @@
-﻿using Business.DTOs;
+﻿using API.Extensions;
+using API.DTOs;
+using API.Mappers;
+using Business.DTOs;
 using Business.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,6 +14,7 @@ public class OrderController : ControllerBase
 {
     private readonly ILogger<OrderController> _logger;
     private readonly IOrderService _orderService;
+    private readonly OrderRequestMapper _mapper = new();
 
     public OrderController(ILogger<OrderController> logger, IOrderService orderService)
     {
@@ -37,6 +41,12 @@ public class OrderController : ControllerBase
         return await _orderService.GetByOrdererIdAsync(userId);
     }
 
+    [HttpGet("with-users", Name = "GetOrdersWithUsers")]
+    public async Task<IEnumerable<OrderWithUsersDto>> GetAllWithUsers()
+    {
+        return await _orderService.GetAllWithUsersAsync();
+    }
+
     [HttpGet("{id:int}", Name = "GetOrderById")]
     public async Task<ActionResult<OrderDto>> GetById(int id)
     {
@@ -50,45 +60,47 @@ public class OrderController : ControllerBase
         return Ok(order);
     }
 
-    [HttpPost(Name = "CreateOrder")]
-    public async Task<ActionResult<OrderDto>> Create([FromBody] OrderCreateDto dto)
+    [HttpGet("{id:int}/details", Name = "GetOrderDetailsById")]
+    public async Task<ActionResult<OrderWithUsersDto>> GetDetails(int id)
     {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
+        var order = await _orderService.GetByIdAsync(id);
 
-        var (result, order) = await _orderService.CreateAsync(dto);
-
-        if (!result.Succeeded || order is null)
-        {
-            return BadRequest(result.Errors.Select(error => error.Description));
-        }
-
-        return CreatedAtRoute("GetOrderById", new { id = order.Id }, order);
-    }
-
-    [HttpPut("{id:int}", Name = "UpdateOrder")]
-    public async Task<ActionResult<OrderDto>> Update(int id, [FromBody] OrderUpdateDto dto)
-    {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
-
-        var (result, order) = await _orderService.UpdateAsync(id, dto);
-
-        if (result.Succeeded || order is not null)
-        {
-            return Ok(order);
-        }
-
-        if (result.Errors.Any(error => error.Code == "OrderNotFound"))
+        if (order is null)
         {
             return NotFound();
         }
 
-        return BadRequest(result.Errors.Select(error => error.Description));
+        var orderWithUsers = new OrderWithUsersDto
+        {
+            Order = order,
+            OrdererName = order.Orderer?.UserName ?? "Unknown",
+            CreatorName = order.Creator?.UserName ?? "Unknown"
+        };
+
+        return Ok(orderWithUsers);
+    }
+
+    [HttpPost(Name = "CreateOrder")]
+    public async Task<ActionResult<OrderDto>> Create([FromBody] OrderCreateRequestDto dto)
+    {
+        var createDto = _mapper.ToBusinessDto(dto);
+        var result = await _orderService.CreateAsync(createDto);
+
+        if (result.IsError)
+        {
+            return result.ToActionResult();
+        }
+
+        return CreatedAtRoute("GetOrderById", new { id = result.Value.Id }, result.Value);
+    }
+
+    [HttpPut("{id:int}", Name = "UpdateOrder")]
+    public async Task<ActionResult<OrderDto>> Update(int id, [FromBody] OrderUpdateRequestDto dto)
+    {
+        var updateDto = _mapper.ToBusinessDto(dto, id);
+        var result = await _orderService.UpdateAsync(updateDto);
+
+        return result.ToActionResult();
     }
 
     [HttpDelete("{id:int}", Name = "DeleteOrder")]
@@ -96,16 +108,6 @@ public class OrderController : ControllerBase
     {
         var result = await _orderService.DeleteAsync(id);
 
-        if (result.Succeeded)
-        {
-            return NoContent();
-        }
-
-        if (result.Errors.Any(error => error.Code == "OrderNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return result.ToActionResult();
     }
 }

@@ -22,6 +22,15 @@ public class SubscriptionRepository : ISubscriptionRepository
             .ToListAsync();
     }
 
+    public Task<List<Subscription>> GetAllWithUsersAsync()
+    {
+        return _dbContext.Subscriptions
+            .AsNoTracking()
+            .Include(s => s.Creator)
+            .Include(s => s.Orderer)
+            .ToListAsync();
+    }
+
     public Task<Subscription?> GetByIdAsync(int id)
     {
         return _dbContext.Subscriptions
@@ -44,7 +53,6 @@ public class SubscriptionRepository : ISubscriptionRepository
         }
 
         await _dbContext.Subscriptions.AddAsync(subscription);
-        await _dbContext.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Subscription subscription)
@@ -60,12 +68,10 @@ public class SubscriptionRepository : ISubscriptionRepository
         }
 
         _dbContext.Subscriptions.Update(subscription);
-        await _dbContext.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Subscription subscription)
     {
         _dbContext.Subscriptions.Remove(subscription);
-        await _dbContext.SaveChangesAsync();
     }
 }

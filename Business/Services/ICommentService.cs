@@ -1,5 +1,5 @@
 ﻿using Business.DTOs;
-using Microsoft.AspNetCore.Identity;
+using ErrorOr;
 
 namespace Business.Services
 {
@@ -7,8 +7,9 @@ namespace Business.Services
     {
         Task<List<CommentDto>> GetAllAsync();
         Task<CommentDto?> GetByIdAsync(int id);
-        Task<(IdentityResult Result, CommentDto? Comment)> CreateAsync(CommentCreateDto dto);
-        Task<(IdentityResult Result, CommentDto? Comment)> UpdateAsync(int id, CommentUpdateDto dto);
-        Task<IdentityResult> DeleteAsync(int id);
+        Task<List<CommentDto>> GetByVideoIdAsync(int videoId);
+        Task<ErrorOr<CommentDto>> CreateAsync(CommentCreateDto dto);
+        Task<ErrorOr<CommentDto>> UpdateAsync(CommentUpdateDto dto);
+        Task<ErrorOr<Success>> DeleteAsync(int id);
     }
 }

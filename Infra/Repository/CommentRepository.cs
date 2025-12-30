@@ -28,6 +28,15 @@ namespace Infra.Repository
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
+        public Task<List<Comment>> GetByVideoIdAsync(int videoId)
+        {
+            return _dbContext.Comments
+                .AsNoTracking()
+                .Include(comment => comment.Author)
+                .Where(comment => comment.VideoId == videoId)
+                .ToListAsync();
+        }
+
         public async Task CreateAsync(Comment comment)
         {
             if (comment.Author is not null)
@@ -36,25 +45,21 @@ namespace Infra.Repository
             }
 
             await _dbContext.Comments.AddAsync(comment);
-            await _dbContext.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(Comment comment)
         {
-
             if (comment.Author is not null)
             {
                 _dbContext.Attach(comment.Author);
             }
 
             _dbContext.Comments.Update(comment);
-            await _dbContext.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(Comment comment)
         {
             _dbContext.Comments.Remove(comment);
-            await _dbContext.SaveChangesAsync();
         }
     }
 }

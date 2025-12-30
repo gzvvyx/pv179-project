@@ -1,0 +1,104 @@
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold">Admin Dashboard</h1>
+        <p class="text-base-content/70 mt-2">Manage your application from here</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <icon name="users" />
+                    User Management
+                </h2>
+                <p>Manage users, roles, and permissions</p>
+                <div class="card-actions justify-end mt-4">
+                    <a asp-area="Admin" asp-controller="User" asp-action="Index" class="btn btn-primary">Manage Users</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <icon name="shopping-cart" />
+                    Order Management
+                </h2>
+                <p>View and manage all orders</p>
+                <div class="card-actions justify-end mt-4">
+                    <a asp-area="Admin" asp-controller="Order" asp-action="Index" class="btn btn-primary">View Orders</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <icon name="list" />
+                    Playlist Management
+                </h2>
+                <p>View and manage all playlists</p>
+                <div class="card-actions justify-end mt-4">
+                    <a asp-area="Admin" asp-controller="Playlist" asp-action="Index" class="btn btn-primary">View Playlists</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <icon name="video" />
+                    Video Management
+                </h2>
+                <p>View and manage all videos</p>
+                <div class="card-actions justify-end mt-4">
+                    <a asp-area="Admin" asp-controller="Video" asp-action="Index" class="btn btn-primary">View Videos</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <icon name="bell" />
+                    Subscription Management
+                </h2>
+                <p>View and manage all subscriptions</p>
+                <div class="card-actions justify-end mt-4">
+                    <a asp-area="Admin" asp-controller="Subscription" asp-action="Index" class="btn btn-primary">View Subscriptions</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <icon name="gift" />
+                    Gift Card Management
+                </h2>
+                <p>Create and manage gift cards and codes</p>
+                <div class="card-actions justify-end mt-4">
+                    <a asp-area="Admin" asp-controller="GiftCard" asp-action="Index" class="btn btn-primary">Manage Gift Cards</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <icon name="tag" />
+                    Category Management
+                </h2>
+                <p>Create and manage video categories</p>
+                <div class="card-actions justify-end mt-4">
+                    <a asp-area="Admin" asp-controller="Category" asp-action="Index" class="btn btn-primary">Manage Categories</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

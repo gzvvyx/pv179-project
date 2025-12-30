@@ -1,0 +1,64 @@
+@model CreateGiftCardViewModel
+@{
+    ViewData["Title"] = "Create Gift Card";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">Create Gift Card</h1>
+            <p class="text-base-content/70 mt-2">Add a new gift card</p>
+        </div>
+        <a asp-action="Index" class="btn btn-ghost">
+            <icon name="arrow-left" />
+            Back to Gift Cards
+        </a>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                
+                <div asp-validation-summary="ModelOnly" class="text-error mb-4"></div>
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="form-control">
+                        <label class="label" asp-for="PriceReduction">
+                            <span class="label-text">Price Reduction</span>
+                        </label>
+                        <input type="number" asp-for="PriceReduction" step="0.01" class="input input-bordered" />
+                        <span asp-validation-for="PriceReduction" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="ValidFrom">
+                            <span class="label-text">Valid From</span>
+                        </label>
+                        <input type="datetime-local" asp-for="ValidFrom" class="input input-bordered" />
+                        <span asp-validation-for="ValidFrom" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="ValidTo">
+                            <span class="label-text">Valid To</span>
+                        </label>
+                        <input type="datetime-local" asp-for="ValidTo" class="input input-bordered" />
+                        <span asp-validation-for="ValidTo" class="text-error text-sm"></span>
+                    </div>
+                </div>
+
+                <div class="form-control mt-6">
+                    <div class="flex gap-4 justify-end">
+                        <a asp-action="Index" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <icon name="save" />
+                            Create Gift Card
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

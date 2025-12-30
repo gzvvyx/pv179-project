@@ -1,0 +1,116 @@
+@model EditSubscriptionViewModel
+@{
+    ViewData["Title"] = "Edit Subscription";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">Edit Subscription #@Model.Subscription.Id</h1>
+            <p class="text-base-content/70 mt-2">Update subscription details</p>
+        </div>
+        <a asp-action="Index" class="btn btn-ghost">
+            <icon name="arrow-left" />
+            Back to Subscriptions
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-error mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form asp-action="Edit" asp-route-id="@Model.Subscription.Id" method="post">
+                @Html.AntiForgeryToken()
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="form-control">
+                        <label class="label">Subscription ID</label>
+                        <input type="text" value="#@Model.Subscription.Id" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Orderer</label>
+                        <input type="text" value="@Model.OrdererName" class="input input-bordered block" disabled />
+                        <label class="label">@Model.Subscription.Orderer.Id</label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Creator</label>
+                        <input type="text" value="@Model.CreatorName" class="input input-bordered block" disabled />
+                        <label class="label">@Model.Subscription.Creator.Id</label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Active</label>
+                        <input type="checkbox" asp-for="Active" class="toggle toggle-primary" />
+                        <span asp-validation-for="Active" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Timeframe</label>
+                        <select asp-for="Timeframe" asp-items="Model.Timeframes" class="select select-bordered block">
+                            <option value="">-- Select Timeframe --</option>
+                        </select>
+                        <span asp-validation-for="Timeframe" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Subscribed At</label>
+                        <input type="text" value="@Model.Subscription.SubscribedAt.ToLocalTime().ToString("g")" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="LastRenewedAt">Last Renewed At</label>
+                        <input type="datetime-local" asp-for="LastRenewedAt" value="@(Model.LastRenewedAt?.ToString("yyyy-MM-ddTHH:mm"))" class="input input-bordered block" />
+                        <span asp-validation-for="LastRenewedAt" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="ExpiresAt">Expires At</label>
+                        <input type="datetime-local" asp-for="ExpiresAt" value="@(Model.ExpiresAt?.ToString("yyyy-MM-ddTHH:mm"))" class="input input-bordered block" />
+                        <span asp-validation-for="ExpiresAt" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Created At</label>
+                        <input type="text" value="@Model.Subscription.CreatedAt.ToLocalTime().ToString("g")" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Updated At</label>
+                        <input type="text" value="@Model.Subscription.UpdatedAt.ToLocalTime().ToString("g")" class="input input-bordered block" disabled />
+                    </div>
+                </div>
+
+                <div class="form-control mt-6">
+                    <div class="flex gap-4 justify-end">
+                        <a asp-action="Index" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <icon name="save" />
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

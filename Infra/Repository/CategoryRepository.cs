@@ -24,7 +24,6 @@ public class CategoryRepository : ICategoryRepository
     public Task<Category?> GetByIdAsync(int id)
     {
         return _dbContext.Categories
-            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
@@ -33,5 +32,23 @@ public class CategoryRepository : ICategoryRepository
         return _dbContext.Categories
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Name == name);
+    }
+
+    public async Task CreateAsync(Category category)
+    {
+        await _dbContext.Categories.AddAsync(category);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(Category category)
+    {
+        _dbContext.Categories.Update(category);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Category category)
+    {
+        _dbContext.Categories.Remove(category);
+        await _dbContext.SaveChangesAsync();
     }
 }
