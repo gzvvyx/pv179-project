@@ -57,7 +57,7 @@ On first start, the API will:
 
 5. **Open your browser** (replace the port if different in console output)
 ```
-http://localhost:5076/swagger
+http://localhost:5076
 ```
 
 ## Technical overview
@@ -70,6 +70,51 @@ http://localhost:5076/swagger
 - EF Core audit logging to `AuditLogs` table (entity create/update/delete)
 - Layered architecture: DAL, Infra, Business, Common, API, MVC
 - GitLab CI/CD for automated build/test validation
+
+### Search & Filtering
+- Users can search across videos, playlists, and creators.
+- Sidebar filters allow narrowing results by:
+  - **Content type** (videos, playlists, creators)
+  - **Video categories**
+  - **Date range**
+  - **Sorting** (by title, date created, last updated)
+- Category filter is context-aware and only visible when searching for videos.
+- Pagination is supported for large result sets.
+
+### Video Detail Page
+- Each video has a dedicated detail page with:
+  - Video, title, description, upload date, and creator info
+  - List of assigned categories
+
+### Video Categories
+- Each video has one **primary** category
+- Each video can have multiple **secondary** categories
+
+### Gift Cards
+- Gift cards are special products that can be purchased and redeemed for credit or discounts on the platform.
+- Each gift card can have multiple unique codes (`GiftCardCode`), which can be distributed to users.
+- The value of the gift card is applied to the purchase (e.g., as a discount or credit).
+- Gift cards and their codes are visible in the user's order history if used.
+
+### Orders
+- Each order (`Order`) tracks:
+  - The buyer (orderer) and the seller (creator)
+  - The order date, amount, and current status (pending, completed, failed)
+  - Linked gift card code if a gift card was used for the purchase
+  - Timeline information (created, updated)
+- Users can view their order history on the **My Orders** page, which lists all their past and current orders.
+- Each order in the list can be clicked to view a detailed **Order Detail** page, which shows:
+  - All order information (status, amount, parties, timeline)
+  - The gift card code used (if any)
+  - Contextual alerts for payment status (pending, completed, failed)
+
+### Subscription & Purchase Flow
+
+- Each creator (user) has a simple public detail page, where users can view their profile and content.
+- Clicking **Subscribe** starts the purchase process for a subscription to the selected creator.
+- In the purchase process, the user can immediately enter a **gift card code** to apply a discount or credit.
+- The user then confirms the purchase by clicking the **Pay** button.
+- After payment, the system creates both a **Subscription** (linking the user to the creator) and an **Order** (tracking the transaction, payment status, and any applied gift card).
 
 ### Audit logger
 Entity changes are recorded into an `AuditLogs` table automatically during `SaveChanges`/`SaveChangesAsync`.
@@ -85,6 +130,19 @@ Authentication is handled by ASP.NET Core Identity with the custom `User` entity
 - Registration in MVC: `AddIdentity<User, IdentityRole>()` + `AddEntityFrameworkStores<AppDbContext>()` + `AddDefaultTokenProviders()`
 - Email sender: `IEmailSender` registered (development stub in `MVC.Services.EmailSender`)
 - Docs: https://learn.microsoft.com/aspnet/core/security/authentication/identity
+
+### Admin Interface
+The platform includes a dedicated admin interface for advanced management and administration tasks. Administrators can:
+
+- **User management:** Manage users, assign and change roles, and reset user passwords.
+- **Order management:** View, edit, and manage all orders across the platform.
+- **Playlist management:** Create, edit, and delete playlists.
+- **Video management:** Manage videos, including editing, approving, or removing content.
+- **Subscription management:** Oversee and manage user subscriptions.
+- **Gift card management:** Create, edit, and delete gift cards; generate and remove gift card codes.
+- **Category management:** Create, edit, and delete video categories.
+
+The admin interface is accessible only to users with administrative privileges and provides a secure environment for platform maintenance and oversight.
 
 ### Architecture
 The project is divided into several layers, each with its own clear purpose:
@@ -104,7 +162,8 @@ provides the user interface and handles web requests. It includes controllers an
 Each layer communicates only with the one directly below it, ensuring a clean separation of responsibilities.
 
 ### Logging middleware
-The API configures Serilog in `API/Program.cs` (console sink by default). A request logging middleware (`UseSerilogRequestLogging`) emits structured logs for each HTTP request (method, path, status code, duration).
+Both the API and MVC projects configure Serilog for logging (console sink by default).  
+A request logging middleware (`UseSerilogRequestLogging`) emits structured logs for each HTTP request (method, path, status code, duration) in both projects.
 
 Request logs themselves are not written directly to the database. Persistent logging to the database is achieved through the EF Core audit mechanism (see the Audit logger section) which stores entity change events in the `AuditLogs` table.
 
@@ -142,4 +201,4 @@ dotnet test Business.Tests/Business.Tests.csproj
 ## Use case diagram
 ![Use case diagram](Docs/pv179-usecase.png)
 ## Data model
-![Data model](Docs/pv179-datamodel-vol2.png)
+![Data model](Docs/pv179-datamodel.vol3.png)
