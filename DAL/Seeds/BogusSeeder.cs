@@ -21,5 +21,7 @@ public static class BogusSeeder
         await BogusCommentSeeds.SeedAsync(db);
         await BogusCategorySeeds.SeedAsync(db);
         await BogusCategorySeeds.SeedVideoCategoriesAsync(db);
+        await BogusGiftCardSeeds.SeedAsync(db);
+        await BogusGiftCardCodeSeeds.SeedAsync(db);
     }
 }

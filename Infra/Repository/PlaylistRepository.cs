@@ -18,6 +18,7 @@ namespace Infra.Repository
         {
             return _dbContext.Playlists
                 .AsNoTracking()
+                .Include(playlist => playlist.Creator)
                 .ToListAsync();
         }
 

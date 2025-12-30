@@ -17,6 +17,8 @@ public class SubscriptionRepository : ISubscriptionRepository
     {
         return _dbContext.Subscriptions
             .AsNoTracking()
+            .Include(s => s.Orderer)
+            .Include(s => s.Creator)
             .ToListAsync();
     }
 
