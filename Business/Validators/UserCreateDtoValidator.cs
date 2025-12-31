@@ -20,6 +20,11 @@ public class UserCreateDtoValidator : AbstractValidator<UserCreateDto>
         RuleFor(x => x.Password)
             .NotEmpty()
             .WithMessage("Password is required.");
+
+        RuleFor(x => x.PricePerMonth)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.PricePerMonth.HasValue)
+            .WithMessage("PricePerMonth must be greater than or equal to 0.");
     }
 }
 

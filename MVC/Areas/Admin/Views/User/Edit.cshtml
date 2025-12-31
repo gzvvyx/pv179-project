@@ -57,6 +57,14 @@
                     </div>
 
                     <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Price Per Month</span>
+                        </label>
+                        <input type="number" asp-for="PricePerMonth" step="0.01" min="0" class="input input-bordered block" />
+                        <span asp-validation-for="PricePerMonth" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
                         <label class="label">Roles</label>
                         <div class="space-y-2 mt-2">
                             @foreach (var role in Model.AvailableRoles)

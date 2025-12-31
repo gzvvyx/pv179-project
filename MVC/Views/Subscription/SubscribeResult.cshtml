@@ -1,0 +1,103 @@
+@model pv179.Models.SubscribeResultViewModel
+@{
+    ViewData["Title"] = "Subscription Complete";
+}
+
+<div class="max-w-xl mx-auto py-12">
+    <div class="card bg-base-100 shadow-2xl">
+        <div class="card-body text-center">
+            @if (Model.Success)
+            {
+                <!-- Success State -->
+                <div class="flex justify-center mb-6">
+                    <div class="rounded-full bg-success/20 p-6">
+                        <icon name="check-circle" size="64" class="text-success" />
+                    </div>
+                </div>
+
+                <h1 class="text-3xl font-bold text-success mb-2">Payment Successful!</h1>
+                <p class="text-base-content/70 mb-6">
+                    You are now subscribed to <span class="font-bold">@Model.CreatorName</span>
+                </p>
+
+                <!-- Receipt -->
+                <div class="bg-base-200 rounded-lg p-6 text-left mb-6">
+                    <h2 class="font-bold text-lg mb-4 text-center">Receipt</h2>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Original Amount</span>
+                            <span>$@Model.OriginalAmount.ToString("F2")</span>
+                        </div>
+
+                        @if (Model.DiscountApplied > 0)
+                        {
+                            <div class="flex justify-between text-success">
+                                <span>
+                                    Discount Applied
+                                    @if (!string.IsNullOrEmpty(Model.GiftCardCodeUsed))
+                                    {
+                                        <span class="badge badge-sm">@Model.GiftCardCodeUsed</span>
+                                    }
+                                </span>
+                                <span>-$@Model.DiscountApplied.ToString("F2")</span>
+                            </div>
+                        }
+
+                        <div class="divider my-2"></div>
+
+                        <div class="flex justify-between font-bold text-lg">
+                            <span>Total Paid</span>
+                            <span class="text-primary">$@Model.FinalAmount.ToString("F2")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subscription Info -->
+                @if (Model.ExpiresAt.HasValue)
+                {
+                    <div class="alert alert-info">
+                        <icon name="clock" size="24" class="stroke-current shrink-0" />
+                        <span>Your subscription is active until <strong>@Model.ExpiresAt.Value.ToString("MMMM dd, yyyy")</strong></span>
+                    </div>
+                }
+
+                <div class="divider"></div>
+
+                <div class="card-actions justify-center">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary btn-lg">
+                        <icon name="home" size="20" class="mr-2" />
+                        Continue Browsing
+                    </a>
+                    <a asp-controller="Order" asp-action="MyOrders" class="btn btn-outline">
+                        View My Orders
+                    </a>
+                </div>
+            }
+            else
+            {
+                <!-- Error State -->
+                <div class="flex justify-center mb-6">
+                    <div class="rounded-full bg-error/20 p-6">
+                        <icon name="x-circle" size="64" class="text-error" />
+                    </div>
+                </div>
+
+                <h1 class="text-3xl font-bold text-error mb-2">Payment Failed</h1>
+                <p class="text-base-content/70 mb-6">
+                    @(Model.ErrorMessage ?? "Something went wrong with your payment. Please try again.")
+                </p>
+
+                <div class="card-actions justify-center">
+                    <button onclick="history.back()" class="btn btn-primary">
+                        Try Again
+                    </button>
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline">
+                        Go Home
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+

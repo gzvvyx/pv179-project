@@ -17,6 +17,9 @@ public class EditUserViewModel
     [Display(Name = "Confirm New Password")]
     [Compare("NewPassword", ErrorMessage = "The password and confirmation password do not match.")]
     public string? ConfirmPassword { get; set; }
+    
+    [Display(Name = "Price Per Month")]
+    public decimal? PricePerMonth { get; set; }
 }
 
 public class RoleCheckboxItem

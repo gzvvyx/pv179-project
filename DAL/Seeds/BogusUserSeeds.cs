@@ -21,7 +21,10 @@ public static class BogusUserSeeds
                 .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.UserName))
                 .RuleFor(u => u.EmailConfirmed, _ => true)
                 .RuleFor(u => u.PhoneNumber, f => f.Phone.PhoneNumber())
-                .RuleFor(u => u.PhoneNumberConfirmed, _ => false);
+                .RuleFor(u => u.PhoneNumberConfirmed, _ => false)
+                .RuleFor(u => u.PricePerMonth, f => f.Random.Bool(0.7f) 
+                    ? f.Random.Decimal(0, 50) 
+                    : null);
 
         var users = faker.Generate(numberOfUsers);
 

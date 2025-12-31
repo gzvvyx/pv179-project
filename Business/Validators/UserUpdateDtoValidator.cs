@@ -21,6 +21,11 @@ public class UserUpdateDtoValidator : AbstractValidator<UserUpdateDto>
             .MinimumLength(6)
             .When(x => !string.IsNullOrWhiteSpace(x.NewPassword))
             .WithMessage("Password must be at least 6 characters long.");
+
+        RuleFor(x => x.PricePerMonth)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.PricePerMonth.HasValue)
+            .WithMessage("PricePerMonth must be greater than or equal to 0.");
     }
 }
 
