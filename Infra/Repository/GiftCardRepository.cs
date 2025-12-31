@@ -31,18 +31,15 @@ public class GiftCardRepository : IGiftCardRepository
     public async Task CreateAsync(GiftCard giftCard)
     {
         await _dbContext.GiftCards.AddAsync(giftCard);
-        await _dbContext.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(GiftCard giftCard)
     {
         _dbContext.GiftCards.Update(giftCard);
-        await _dbContext.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(GiftCard giftCard)
     {
         _dbContext.GiftCards.Remove(giftCard);
-        await _dbContext.SaveChangesAsync();
     }
 }

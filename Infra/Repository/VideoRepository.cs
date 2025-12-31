@@ -41,7 +41,6 @@ public class VideoRepository : IVideoRepository
         }
 
         await _dbContext.Videos.AddAsync(video);
-        await _dbContext.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Video video)
@@ -52,13 +51,11 @@ public class VideoRepository : IVideoRepository
         }
 
         _dbContext.Videos.Update(video);
-        await _dbContext.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Video video)
     {
         _dbContext.Videos.Remove(video);
-        await _dbContext.SaveChangesAsync();
     }
 
     public async Task<List<Video>> GetByFilterAsync(VideoFilterDto dto)
