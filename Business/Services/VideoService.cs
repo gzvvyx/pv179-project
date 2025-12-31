@@ -7,6 +7,8 @@ using ErrorOr;
 using FluentValidation;
 using Infra.DTOs;
 using Infra.Repository;
+using Infra.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Business.Services;
 
@@ -14,23 +16,29 @@ public class VideoService : IVideoService
 {
     private readonly IVideoRepository _videoRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IFileService _fileService;
     private readonly IValidator<VideoCreateDto> _createValidator;
     private readonly IValidator<VideoUpdateDto> _updateValidator;
     private readonly AppDbContext _dbContext;
+    private readonly ILogger<VideoService> _logger;
     private readonly VideoMapper _mapper = new();
 
     public VideoService(
         IVideoRepository videoRepository, 
         IUserRepository userRepository,
+        IFileService fileService,
         AppDbContext dbContext,
         IValidator<VideoCreateDto> createValidator,
-        IValidator<VideoUpdateDto> updateValidator)
+        IValidator<VideoUpdateDto> updateValidator,
+        ILogger<VideoService> logger)
     {
         _videoRepository = videoRepository;
         _userRepository = userRepository;
+        _fileService = fileService;
         _dbContext = dbContext;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _logger = logger;
     }
 
     public async Task<List<VideoDto>> GetAllAsync()
@@ -120,7 +128,22 @@ public class VideoService : IVideoService
             video.Url = dto.Url;
         }
 
-        if (!string.IsNullOrWhiteSpace(dto.ThumbnailUrl))
+        if (dto.ThumbnailImageBytes != null && dto.ThumbnailImageBytes.Length > 0 && 
+            !string.IsNullOrWhiteSpace(dto.ThumbnailImageFileName))
+        {
+            var thumbnailResult = await ProcessThumbnailUploadAsync(
+                dto.ThumbnailImageBytes, 
+                dto.ThumbnailImageFileName, 
+                video.ThumbnailUrl);
+            
+            if (thumbnailResult.IsError)
+            {
+                return thumbnailResult.FirstError;
+            }
+            
+            video.ThumbnailUrl = thumbnailResult.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.ThumbnailUrl))
         {
             video.ThumbnailUrl = dto.ThumbnailUrl;
         }
@@ -129,6 +152,58 @@ public class VideoService : IVideoService
         await _dbContext.SaveChangesAsync();
 
         return _mapper.Map(video);
+    }
+
+    private async Task<ErrorOr<string>> ProcessThumbnailUploadAsync(
+        byte[] fileBytes, 
+        string fileName, 
+        string? currentThumbnailUrl = null)
+    {
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
+        
+        if (!allowedExtensions.Contains(fileExtension))
+        {
+            return Error.Validation(
+                nameof(fileName),
+                "Only image files (jpg, jpeg, png, gif, webp) are allowed.");
+        }
+
+        const long maxFileSize = 5 * 1024 * 1024;
+        if (fileBytes.Length > maxFileSize)
+        {
+            return Error.Validation(
+                nameof(fileBytes),
+                "File size must be less than 5MB.");
+        }
+
+        try
+        {
+            if (!string.IsNullOrEmpty(currentThumbnailUrl) && 
+                !currentThumbnailUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                var oldThumbnailPath = currentThumbnailUrl.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase)
+                    ? currentThumbnailUrl.Substring("/uploads/".Length)
+                    : currentThumbnailUrl;
+                
+                await _fileService.DeleteFileAsync(oldThumbnailPath);
+            }
+
+            var relativePath = await _fileService.SaveFileAsync(fileBytes, fileName, "thumbnails");
+            
+            var thumbnailUrl = $"/uploads/{relativePath}";
+            
+            _logger.LogInformation("Thumbnail uploaded successfully: {ThumbnailUrl}", thumbnailUrl);
+            
+            return thumbnailUrl;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading thumbnail image: {FileName}", fileName);
+            return Error.Failure(
+                nameof(fileBytes),
+                "An error occurred while uploading the image. Please try again.");
+        }
     }
 
     public async Task<ErrorOr<Success>> DeleteAsync(int id)

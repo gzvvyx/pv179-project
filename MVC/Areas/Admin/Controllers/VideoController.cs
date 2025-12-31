@@ -69,13 +69,27 @@ public class VideoController : Controller
             return NotFound();
         }
 
+        byte[]? thumbnailImageBytes = null;
+        string? thumbnailImageFileName = null;
+
+        // Read file bytes if a new image was provided
+        if (model.ThumbnailImage != null && model.ThumbnailImage.Length > 0)
+        {
+            await using var memoryStream = new MemoryStream();
+            await model.ThumbnailImage.CopyToAsync(memoryStream);
+            thumbnailImageBytes = memoryStream.ToArray();
+            thumbnailImageFileName = model.ThumbnailImage.FileName;
+        }
+
         var videoUpdateDto = new VideoUpdateDto
         {
             Id = id,
             Title = model.Title,
             Description = model.Description,
             Url = model.Url,
-            ThumbnailUrl = model.ThumbnailUrl
+            ThumbnailUrl = model.ThumbnailUrl,
+            ThumbnailImageBytes = thumbnailImageBytes,
+            ThumbnailImageFileName = thumbnailImageFileName
         };
 
         var result = await _videoService.UpdateAsync(videoUpdateDto);

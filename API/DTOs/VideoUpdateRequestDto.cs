@@ -1,14 +1,13 @@
-namespace Business.DTOs;
+namespace API.DTOs;
 
-public class VideoUpdateDto
+public class VideoUpdateRequestDto
 {
-    public required int Id { get; set; }
     public string? CreatorId { get; set; }
     public string? Title { get; set; }
     public string? Description { get; set; }
     public string? Url { get; set; }
     public string? ThumbnailUrl { get; set; }
-    public byte[]? ThumbnailImageBytes { get; set; }
+    public string? ThumbnailImageBase64 { get; set; }
     public string? ThumbnailImageFileName { get; set; }
 }
 

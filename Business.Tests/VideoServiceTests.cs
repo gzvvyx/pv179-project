@@ -10,8 +10,10 @@ using ErrorOr;
 using FluentValidation;
 using Infra.DTOs;
 using Infra.Repository;
+using Infra.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -24,6 +26,8 @@ public class VideoServiceTests
     private readonly IValidator<VideoUpdateDto> _updateValidator;
     private readonly Mock<IVideoRepository> _videoRepo;
     private readonly Mock<IUserRepository> _userRepo;
+    private readonly Mock<IFileService> _fileService;
+    private readonly Mock<ILogger<VideoService>> _logger;
     private readonly VideoService _service;
 
     public VideoServiceTests()
@@ -36,7 +40,9 @@ public class VideoServiceTests
         _updateValidator = new VideoUpdateDtoValidator();
         _videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
         _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        _service = new VideoService(_videoRepo.Object, _userRepo.Object, _dbContext, _createValidator, _updateValidator);
+        _fileService = new Mock<IFileService>(MockBehavior.Strict);
+        _logger = new Mock<ILogger<VideoService>>();
+        _service = new VideoService(_videoRepo.Object, _userRepo.Object, _fileService.Object, _dbContext, _createValidator, _updateValidator, _logger.Object);
     }
 
     private static User CreateUser(string id) => new User

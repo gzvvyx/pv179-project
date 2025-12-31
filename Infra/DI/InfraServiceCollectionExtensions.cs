@@ -11,6 +11,7 @@ public static class InfraServiceCollectionExtensions
     {
         services.AddMemoryCache();
         services.AddScoped<ICacheService, CacheService>();
+        services.AddScoped<IFileService, FileService>();
         
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IVideoRepository, VideoRepository>();
