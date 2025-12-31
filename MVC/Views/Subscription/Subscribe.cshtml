@@ -1,0 +1,252 @@
+@model pv179.Models.SubscribeViewModel
+@{
+    ViewData["Title"] = $"Subscribe to {Model.CreatorName}";
+}
+
+<div class="max-w-2xl mx-auto py-8">
+    <div class="card bg-base-100 shadow-2xl">
+        <div class="card-body">
+            <!-- Header -->
+            <div class="text-center mb-6">
+                <div class="avatar placeholder mb-4">
+                    <div class="bg-primary text-primary-content rounded-full w-20">
+                        <span class="text-2xl">@Model.CreatorName[0]</span>
+                    </div>
+                </div>
+                <h1 class="text-2xl font-bold">Subscribe to @Model.CreatorName</h1>
+                <p class="text-base-content/70">Support your favorite creator and unlock exclusive content</p>
+            </div>
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-error mb-6">
+                    <icon name="alert-circle" size="24" class="stroke-current shrink-0" />
+                    <span>@TempData["Error"]</span>
+                </div>
+            }
+
+            <form asp-action="Subscribe" method="post" id="subscribeForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="CreatorId" />
+                <input type="hidden" asp-for="CreatorName" />
+                <input type="hidden" asp-for="MonthlyPrice" />
+
+                <!-- Subscription Plans -->
+                <div class="mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold text-lg">Choose Your Plan</span>
+                    </label>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Monthly -->
+                        <label class="cursor-pointer">
+                            <input type="radio" asp-for="Timeframe" value="Month" class="hidden peer" checked />
+                            <div class="card bg-base-200 border-2 border-transparent peer-checked:border-primary peer-checked:bg-primary/10 transition-all hover:border-primary/50">
+                                <div class="card-body p-4 text-center">
+                                    <h3 class="font-bold text-lg">Monthly</h3>
+                                    <p class="text-3xl font-bold text-primary" id="monthlyPrice">$@Model.MonthlyPrice.ToString("F2")</p>
+                                    <p class="text-sm text-base-content/60">per month</p>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- Half Year -->
+                        <label class="cursor-pointer">
+                            <input type="radio" asp-for="Timeframe" value="HalfYear" class="hidden peer" />
+                            <div class="card bg-base-200 border-2 border-transparent peer-checked:border-primary peer-checked:bg-primary/10 transition-all hover:border-primary/50 relative">
+                                <div class="badge badge-secondary absolute -top-2 -right-2">10% OFF</div>
+                                <div class="card-body p-4 text-center">
+                                    <h3 class="font-bold text-lg">6 Months</h3>
+                                    <p class="text-3xl font-bold text-primary" id="halfYearPrice">$@((Model.MonthlyPrice * 6 * 0.9m).ToString("F2"))</p>
+                                    <p class="text-sm text-base-content/60">$@((Model.MonthlyPrice * 0.9m).ToString("F2"))/mo</p>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- Yearly -->
+                        <label class="cursor-pointer">
+                            <input type="radio" asp-for="Timeframe" value="Year" class="hidden peer" />
+                            <div class="card bg-base-200 border-2 border-transparent peer-checked:border-primary peer-checked:bg-primary/10 transition-all hover:border-primary/50 relative">
+                                <div class="badge badge-accent absolute -top-2 -right-2">20% OFF</div>
+                                <div class="card-body p-4 text-center">
+                                    <h3 class="font-bold text-lg">Yearly</h3>
+                                    <p class="text-3xl font-bold text-primary" id="yearlyPrice">$@((Model.MonthlyPrice * 12 * 0.8m).ToString("F2"))</p>
+                                    <p class="text-sm text-base-content/60">$@((Model.MonthlyPrice * 0.8m).ToString("F2"))/mo</p>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <span asp-validation-for="Timeframe" class="text-error text-sm"></span>
+                </div>
+
+                <!-- Gift Card Code -->
+                <div class="mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">Gift Card Code (Optional)</span>
+                    </label>
+                    <div class="join w-full">
+                        <input type="text" asp-for="GiftCardCode" placeholder="Enter gift card code" 
+                               class="input input-bordered join-item flex-1" id="giftCardInput" />
+                        <button type="button" class="btn btn-outline join-item" id="validateGiftCard">
+                            <span id="validateBtnText">Apply</span>
+                            <span id="validateSpinner" class="loading loading-spinner loading-sm hidden"></span>
+                        </button>
+                    </div>
+                    <div id="giftCardMessage" class="mt-2 hidden"></div>
+                    <span asp-validation-for="GiftCardCode" class="text-error text-sm"></span>
+                </div>
+
+                <!-- Fake Credit Card Section -->
+                <div class="divider">Payment Details</div>
+                
+                <div class="alert alert-info mb-4">
+                    <icon name="info" size="24" class="stroke-current shrink-0" />
+                    <span>This is a demo payment. No real charges will be made.</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="form-control md:col-span-2">
+                        <label class="label">
+                            <span class="label-text">Card Number</span>
+                        </label>
+                        <input type="text" placeholder="4242 4242 4242 4242" class="input input-bordered" 
+                               value="4242 4242 4242 4242" readonly />
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Expiry Date</span>
+                        </label>
+                        <input type="text" placeholder="12/28" class="input input-bordered" value="12/28" readonly />
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">CVC</span>
+                        </label>
+                        <input type="text" placeholder="123" class="input input-bordered" value="123" readonly />
+                    </div>
+                </div>
+
+                <!-- Order Summary -->
+                <div class="bg-base-200 rounded-lg p-4 mb-6">
+                    <h3 class="font-bold mb-3">Order Summary</h3>
+                    <div class="flex justify-between text-base-content/70 mb-1">
+                        <span>Subtotal</span>
+                        <span id="subtotal">$@Model.MonthlyPrice.ToString("F2")</span>
+                    </div>
+                    <div class="flex justify-between text-success mb-1" id="discountRow" style="display: none;">
+                        <span>Discount</span>
+                        <span id="discountAmount">-$0.00</span>
+                    </div>
+                    <div class="divider my-2"></div>
+                    <div class="flex justify-between font-bold text-lg">
+                        <span>Total</span>
+                        <span id="totalAmount">$@Model.MonthlyPrice.ToString("F2")</span>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="card-actions justify-end">
+                    <a asp-controller="User" asp-action="Index" asp-route-id="@Model.CreatorId" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <icon name="credit-card" size="20" class="mr-2" />
+                        Complete Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const monthlyPrice = @Model.MonthlyPrice.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        let currentDiscount = 0;
+
+        function getSelectedPrice() {
+            const selected = document.querySelector('input[name="Timeframe"]:checked');
+            switch (selected?.value) {
+                case 'Month': return monthlyPrice;
+                case 'HalfYear': return monthlyPrice * 6 * 0.9;
+                case 'Year': return monthlyPrice * 12 * 0.8;
+                default: return monthlyPrice;
+            }
+        }
+
+        function updateSummary() {
+            const subtotal = getSelectedPrice();
+            const discount = Math.min(currentDiscount, subtotal);
+            const total = Math.max(0, subtotal - discount);
+
+            document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+            
+            const discountRow = document.getElementById('discountRow');
+            if (discount > 0) {
+                discountRow.style.display = 'flex';
+                document.getElementById('discountAmount').textContent = '-$' + discount.toFixed(2);
+            } else {
+                discountRow.style.display = 'none';
+            }
+            
+            document.getElementById('totalAmount').textContent = '$' + total.toFixed(2);
+        }
+
+        // Update summary when plan changes
+        document.querySelectorAll('input[name="Timeframe"]').forEach(radio => {
+            radio.addEventListener('change', updateSummary);
+        });
+
+        // Gift card validation
+        document.getElementById('validateGiftCard').addEventListener('click', async function() {
+            const code = document.getElementById('giftCardInput').value.trim();
+            const messageDiv = document.getElementById('giftCardMessage');
+            const btnText = document.getElementById('validateBtnText');
+            const spinner = document.getElementById('validateSpinner');
+
+            if (!code) {
+                messageDiv.className = 'mt-2 text-warning text-sm';
+                messageDiv.textContent = 'Please enter a gift card code.';
+                messageDiv.classList.remove('hidden');
+                return;
+            }
+
+            btnText.classList.add('hidden');
+            spinner.classList.remove('hidden');
+
+            try {
+                const response = await fetch('@Url.Action("ValidateGiftCard", "Subscription")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+
+                const result = await response.json();
+                
+                if (result.valid) {
+                    messageDiv.className = 'mt-2 text-success text-sm';
+                    currentDiscount = result.discount;
+                } else {
+                    messageDiv.className = 'mt-2 text-error text-sm';
+                    currentDiscount = 0;
+                }
+                
+                messageDiv.textContent = result.message;
+                messageDiv.classList.remove('hidden');
+                updateSummary();
+            } catch (error) {
+                messageDiv.className = 'mt-2 text-error text-sm';
+                messageDiv.textContent = 'Failed to validate gift card. Please try again.';
+                messageDiv.classList.remove('hidden');
+            } finally {
+                btnText.classList.remove('hidden');
+                spinner.classList.add('hidden');
+            }
+        });
+
+        // Initial summary update
+        updateSummary();
+    </script>
+}
+

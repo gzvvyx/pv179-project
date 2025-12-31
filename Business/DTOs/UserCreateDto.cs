@@ -13,4 +13,6 @@ public class UserCreateDto
 
     [Required]
     public required string Password { get; set; }
+
+    public decimal? PricePerMonth { get; set; }
 }

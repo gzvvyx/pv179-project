@@ -83,7 +83,8 @@ public class UserController : Controller
         {
             Roles = model.SelectedRoles,
             NewPassword = model.NewPassword,
-            ConfirmPassword = model.ConfirmPassword
+            ConfirmPassword = model.ConfirmPassword,
+            PricePerMonth = model.PricePerMonth
         };
 
         var result = await _userService.UpdateAsync(id, userUpdateDto);

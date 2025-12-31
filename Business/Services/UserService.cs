@@ -64,7 +64,8 @@ public class UserService : IUserService
         var user = new User
         {
             UserName = dto.UserName,
-            Email = dto.Email
+            Email = dto.Email,
+            PricePerMonth = dto.PricePerMonth
         };
 
         var result = await _userRepository.CreateAsync(user, dto.Password);
@@ -93,28 +94,29 @@ public class UserService : IUserService
             return Error.NotFound();
         }
 
-        // Update username if provided
         if (!string.IsNullOrWhiteSpace(dto.UserName) &&
             !string.Equals(user.UserName, dto.UserName, StringComparison.Ordinal))
         {
             user.UserName = dto.UserName;
         }
 
-        // Update email if provided
         if (!string.IsNullOrWhiteSpace(dto.Email) &&
             !string.Equals(user.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
         {
             user.Email = dto.Email;
         }
 
-        // Update user properties
+        if (dto.PricePerMonth != user.PricePerMonth)
+        {
+            user.PricePerMonth = dto.PricePerMonth;
+        }
+
         var updateResult = await _userRepository.UpdateAsync(user);
         if (!updateResult.Succeeded)
         {
             return updateResult.ToErrors();
         }
 
-        // Handle password reset if provided
         if (!string.IsNullOrWhiteSpace(dto.NewPassword))
         {
             var hasPassword = await _userManager.HasPasswordAsync(user);
@@ -138,7 +140,6 @@ public class UserService : IUserService
             }
         }
 
-        // Handle role updates if provided
         if (dto.Roles != null)
         {
             var currentRoles = await _userManager.GetRolesAsync(user);

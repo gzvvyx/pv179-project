@@ -9,4 +9,5 @@ public class UserUpdateDto
     public List<string>? Roles { get; set; }
     public string? NewPassword { get; set; }
     public string? ConfirmPassword { get; set; }
+    public decimal? PricePerMonth { get; set; }
 }

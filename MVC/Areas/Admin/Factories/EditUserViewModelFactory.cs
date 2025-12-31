@@ -25,7 +25,8 @@ public class EditUserViewModelFactory : IEditUserViewModelFactory
         {
             User = user,
             SelectedRoles = currentRoles,
-            AvailableRoles = CreateRoleCheckboxes(currentRoles)
+            AvailableRoles = CreateRoleCheckboxes(currentRoles),
+            PricePerMonth = user.PricePerMonth
         };
 
         return model;

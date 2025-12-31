@@ -13,9 +13,10 @@
         </div>
 
         <div>
-            <button class="btn btn-danger btn-lg rounded-pill fw-bold px-4">
+            <a asp-controller="Subscription" asp-action="Subscribe" asp-route-creatorId="@Model.Id" 
+               class="btn btn-danger btn-lg rounded-pill fw-bold px-4">
                 <i class="bi bi-bell-fill me-2"></i>Subscribe
-            </button>
+            </a>
         </div>
     </div>
 

@@ -19,6 +19,7 @@ public static class BusinessServiceCollectionExtensions
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IGiftCardService, GiftCardService>();
         services.AddScoped<IGiftCardCodeService, GiftCardCodeService>();
+        services.AddScoped<IPaymentService, PaymentService>();
 
         // Register validators
         services.AddScoped<IValidator<UserCreateDto>, UserCreateDtoValidator>();
