@@ -1,24 +1,32 @@
 using DAL.Data;
 using DAL.Models;
+using Infra.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repository;
 
 public class CategoryRepository : ICategoryRepository
 {
+    private const string CategoriesGetAllCacheKey = "Categories_GetAll";
+    
     private readonly AppDbContext _dbContext;
+    private readonly ICacheService _cacheService;
 
-    public CategoryRepository(AppDbContext dbContext)
+    public CategoryRepository(AppDbContext dbContext, ICacheService cacheService)
     {
         _dbContext = dbContext;
+        _cacheService = cacheService;
     }
 
-    public Task<List<Category>> GetAllAsync()
+    public async Task<List<Category>> GetAllAsync()
     {
-        return _dbContext.Categories
-            .AsNoTracking()
-            .OrderBy(c => c.Name)
-            .ToListAsync();
+        return await _cacheService.GetOrSetAsync(CategoriesGetAllCacheKey, async () =>
+        {
+            return await _dbContext.Categories
+                .AsNoTracking()
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+        });
     }
 
     public Task<Category?> GetByIdAsync(int id)
@@ -37,18 +45,18 @@ public class CategoryRepository : ICategoryRepository
     public async Task CreateAsync(Category category)
     {
         await _dbContext.Categories.AddAsync(category);
-        await _dbContext.SaveChangesAsync();
+        _cacheService.Remove(CategoriesGetAllCacheKey);
     }
 
     public async Task UpdateAsync(Category category)
     {
         _dbContext.Categories.Update(category);
-        await _dbContext.SaveChangesAsync();
+        _cacheService.Remove(CategoriesGetAllCacheKey);
     }
 
     public async Task DeleteAsync(Category category)
     {
         _dbContext.Categories.Remove(category);
-        await _dbContext.SaveChangesAsync();
+        _cacheService.Remove(CategoriesGetAllCacheKey);
     }
 }

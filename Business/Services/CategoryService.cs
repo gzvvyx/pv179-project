@@ -1,6 +1,7 @@
 using Business.DTOs;
 using Business.Extensions;
 using Business.Mappers;
+using DAL.Data;
 using DAL.Models;
 using ErrorOr;
 using FluentValidation;
@@ -13,14 +14,17 @@ public class CategoryService : ICategoryService
     private readonly ICategoryRepository _categoryRepository;
     private readonly IValidator<CategoryCreateDto> _createValidator;
     private readonly IValidator<CategoryUpdateDto> _updateValidator;
+    private readonly AppDbContext _dbContext;
     private readonly CategoryMapper _mapper = new();
 
     public CategoryService(
         ICategoryRepository categoryRepository,
+        AppDbContext dbContext,
         IValidator<CategoryCreateDto> createValidator,
         IValidator<CategoryUpdateDto> updateValidator)
     {
         _categoryRepository = categoryRepository;
+        _dbContext = dbContext;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
     }
@@ -67,6 +71,7 @@ public class CategoryService : ICategoryService
         };
 
         await _categoryRepository.CreateAsync(category);
+        await _dbContext.SaveChangesAsync();
 
         return _mapper.Map(category);
     }
@@ -101,6 +106,7 @@ public class CategoryService : ICategoryService
         }
 
         await _categoryRepository.UpdateAsync(category);
+        await _dbContext.SaveChangesAsync();
 
         return _mapper.Map(category);
     }

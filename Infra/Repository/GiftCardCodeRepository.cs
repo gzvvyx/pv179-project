@@ -23,16 +23,13 @@ public class GiftCardCodeRepository : IGiftCardCodeRepository
     public async Task CreateAsync(GiftCardCode giftCardCode)
     {
         _context.GiftCardCodes.Add(giftCardCode);
-        await _context.SaveChangesAsync();
     }
     public async Task UpdateAsync(GiftCardCode giftCardCode)
     {
         _context.GiftCardCodes.Update(giftCardCode);
-        await _context.SaveChangesAsync();
     }
     public async Task DeleteAsync(GiftCardCode giftCardCode)
     {
         _context.GiftCardCodes.Remove(giftCardCode);
-        await _context.SaveChangesAsync();
     }
 }
