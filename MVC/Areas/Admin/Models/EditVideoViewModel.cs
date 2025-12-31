@@ -1,5 +1,6 @@
 using Business.DTOs;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace MVC.Areas.Admin.Models;
 
@@ -21,5 +22,7 @@ public class EditVideoViewModel
     [StringLength(500)]
     [Url]
     public string? ThumbnailUrl { get; set; }
+    
+    public IFormFile? ThumbnailImage { get; set; }
 }
 
