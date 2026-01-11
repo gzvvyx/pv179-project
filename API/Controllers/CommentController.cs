@@ -1,4 +1,5 @@
-﻿using Business.DTOs;
+﻿using API.Extensions;
+using Business.DTOs;
 using Business.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -36,45 +37,37 @@ public class CommentController : ControllerBase
         return Ok(comment);
     }
 
+    [HttpGet("by-video/{videoId:int}", Name = "GetCommentsByVideoId")]
+    public async Task<IEnumerable<CommentDto>> GetByVideoId(int videoId)
+    {
+        return await _commentService.GetByVideoIdAsync(videoId);
+    }
+
     [HttpPost(Name = "CreateComment")]
     public async Task<ActionResult<CommentDto>> Create([FromBody] CommentCreateDto dto)
     {
-        if (!ModelState.IsValid)
+        var result = await _commentService.CreateAsync(dto);
+
+        if (result.IsError)
         {
-            return ValidationProblem(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, comment) = await _commentService.CreateAsync(dto);
-
-        if (!result.Succeeded || comment is null)
-        {
-            return BadRequest(result.Errors.Select(error => error.Description));
-        }
-
-        return CreatedAtRoute("GetCommentById", new { id = comment.Id }, comment);
+        return CreatedAtRoute("GetCommentById", new { id = result.Value.Id }, result.Value);
     }
 
     [HttpPut("{id:int}", Name = "UpdateComment")]
     public async Task<ActionResult<CommentDto>> Update(int id, [FromBody] CommentUpdateDto dto)
     {
-        if (!ModelState.IsValid)
+        dto.Id = id;
+        var result = await _commentService.UpdateAsync(dto);
+
+        if (result.IsError)
         {
-            return ValidationProblem(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, comment) = await _commentService.UpdateAsync(id, dto);
-
-        if (result.Succeeded || comment is not null)
-        {
-            return Ok(comment);
-        }
-
-        if (result.Errors.Any(error => error.Code == "CommentNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return Ok(result.Value);
     }
 
     [HttpDelete("{id:int}", Name = "DeleteComment")]
@@ -82,16 +75,6 @@ public class CommentController : ControllerBase
     {
         var result = await _commentService.DeleteAsync(id);
 
-        if (result.Succeeded)
-        {
-            return NoContent();
-        }
-
-        if (result.Errors.Any(error => error.Code == "CommentNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return result.ToActionResult();
     }
 }

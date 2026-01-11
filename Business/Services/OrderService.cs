@@ -1,9 +1,12 @@
 ﻿using Business.DTOs;
+using Business.Extensions;
 using Business.Mappers;
+using DAL.Data;
 using DAL.Models;
 using DAL.Models.Enums;
+using ErrorOr;
+using FluentValidation;
 using Infra.Repository;
-using Microsoft.AspNetCore.Identity;
 
 namespace Business.Services;
 
@@ -11,16 +14,39 @@ public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IValidator<OrderCreateDto> _createValidator;
+    private readonly IValidator<OrderUpdateDto> _updateValidator;
+    private readonly AppDbContext _dbContext;
     private readonly OrderMapper _mapper = new();
-    public OrderService(IOrderRepository orderRepository, IUserRepository userRepository)
+    
+    public OrderService(
+        IOrderRepository orderRepository, 
+        IUserRepository userRepository,
+        AppDbContext dbContext,
+        IValidator<OrderCreateDto> createValidator,
+        IValidator<OrderUpdateDto> updateValidator)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
+        _dbContext = dbContext;
     }
     public async Task<List<OrderDto>> GetAllAsync()
     {
         var orders = await _orderRepository.GetAllAsync();
         return _mapper.Map(orders);
+    }
+
+    public async Task<List<OrderWithUsersDto>> GetAllWithUsersAsync()
+    {
+        var orders = await _orderRepository.GetAllWithUsersAsync();
+        return orders.Select(order => new OrderWithUsersDto
+        {
+            Order = _mapper.Map(order),
+            OrdererName = order.Orderer?.UserName ?? "Unknown",
+            CreatorName = order.Creator?.UserName ?? "Unknown"
+        }).ToList();
     }
 
     public async Task<OrderDto?> GetByIdAsync(int id)
@@ -29,93 +55,94 @@ public class OrderService : IOrderService
         return order == null ? null : _mapper.Map(order);
     }
 
-    public async Task<(IdentityResult Result, OrderDto? Order)> CreateAsync(OrderCreateDto dto)
+    public async Task<List<OrderDto>> GetByOrdererIdAsync(string ordererId)
     {
-        var creator = await _userRepository.GetUserByIdAsync(dto.CreatorId);
+        var orders = await _orderRepository.GetByOrdererIdAsync(ordererId);
+        return _mapper.Map(orders);
+    }
+
+    public async Task<ErrorOr<OrderDto>> CreateAsync(OrderCreateDto dto)
+    {
+        var validationResult = await _createValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
+        {
+            return validationResult.ToErrors();
+        }
+
+        var creator = await _userRepository.GetByIdAsync(dto.CreatorId);
         if (creator is null)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "CreatorNotFound",
-                Description = $"Creator with id '{dto.CreatorId}' was not found."
-            }), null);
+            return Error.NotFound();
         }
 
-        var orderer = await _userRepository.GetUserByIdAsync(dto.OrdererId);
+        var orderer = await _userRepository.GetByIdAsync(dto.OrdererId);
         if (orderer is null)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "OrdererNotFound",
-                Description = $"Orderer with id '{dto.OrdererId}' was not found."
-            }), null);
+            return Error.NotFound();
         }
-
-        var timestamp = DateTime.UtcNow;
 
         var order = new Order
         {
             Id = default,
             OrdererId = dto.OrdererId,
-            Orderer = orderer,
             CreatorId = dto.CreatorId,
-            Creator = creator,
-            Amount = dto.Amount,
+            Amount = dto.Amount!.Value, 
             Status = OrderStatus.Pending,
-            CreatedAt = timestamp,
-            UpdatedAt = timestamp
+            Orderer = orderer,
+            Creator = creator,
+            CreatedAt = default, 
+            UpdatedAt = default 
         };
         
         await _orderRepository.CreateAsync(order);
+        await _dbContext.SaveChangesAsync();
 
-        return (IdentityResult.Success, _mapper.Map(order));
+        return _mapper.Map(order);
     }
 
-    public async Task<(IdentityResult Result, OrderDto? Order)> UpdateAsync(int id, OrderUpdateDto dto)
+    public async Task<ErrorOr<OrderDto>> UpdateAsync(OrderUpdateDto dto)
     {
-        var order = await _orderRepository.GetByIdAsync(id);
+        var validationResult = await _updateValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
+        {
+            return validationResult.ToErrors();
+        }
+
+        var order = await _orderRepository.GetByIdAsync(dto.Id);
 
         if (order is null)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "OrderNotFound",
-                Description = $"Order with id '{id}' was not found."
-            }), null);
+            return Error.NotFound();
         }
-        
-        if (dto.Amount.HasValue && dto.Amount.Value >= 0.0m && order.Amount != dto.Amount)
+
+        if (dto.Amount.HasValue)
         {
             order.Amount = dto.Amount.Value;
         }
-
-        if (dto.Status.HasValue && order.Status != dto.Status)
+        
+        if (dto.Status.HasValue)
         {
             order.Status = dto.Status.Value;
         }
 
-        order.UpdatedAt = DateTime.UtcNow;
-
         await _orderRepository.UpdateAsync(order);
+        await _dbContext.SaveChangesAsync();
 
-        return (IdentityResult.Success, _mapper.Map(order));
+        return _mapper.Map(order);
     }
 
-    public async Task<IdentityResult> DeleteAsync(int id)
+    public async Task<ErrorOr<Success>> DeleteAsync(int id)
     {
         var order = await _orderRepository.GetByIdAsync(id);
 
         if (order is null)
         {
-            return IdentityResult.Failed(new IdentityError
-            {
-                Code = "OrderNotFound",
-                Description = $"Order with id '{id}' was not found."
-            });
+            return Error.NotFound();
         }
 
         await _orderRepository.DeleteAsync(order);
+        await _dbContext.SaveChangesAsync();
 
-        return IdentityResult.Success;
+        return Result.Success;
     }
 }

@@ -1,0 +1,23 @@
+@using Business.DTOs
+@model UserDto
+
+<div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+    <div class="card-body items-center text-center">
+        <div class="avatar placeholder mb-2">
+            <div class="bg-neutral text-neutral-content rounded-full w-16">
+                <span class="text-2xl">@Model.UserName?.Substring(0, 1).ToUpper()</span>
+            </div>
+        </div>
+        <h3 class="card-title text-base">@Model.UserName</h3>
+        @if (!string.IsNullOrEmpty(Model.Email))
+        {
+            <p class="text-xs opacity-60">@Model.Email</p>
+        }
+        <div class="card-actions mt-2">
+            <a asp-controller="User" asp-action="Index" asp-route-id="@Model.Id" class="btn btn-primary btn-sm btn-block">
+                <icon name="user-plus" />
+                View Profile
+            </a>
+        </div>
+    </div>
+</div>

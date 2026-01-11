@@ -1,0 +1,123 @@
+@model EditVideoViewModel
+@{
+    ViewData["Title"] = "Edit Video";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">Edit Video #@Model.Video.Id</h1>
+            <p class="text-base-content/70 mt-2">Update video details</p>
+        </div>
+        <a asp-action="Index" class="btn btn-ghost">
+            <icon name="arrow-left" />
+            Back to Videos
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-error mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form asp-action="Edit" asp-route-id="@Model.Video.Id" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="form-control">
+                        <label class="label">Video ID</label>
+                        <input type="text" value="#@Model.Video.Id" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Creator</label>
+                        <input type="text" value="@Model.CreatorName" class="input input-bordered block" disabled />
+                        <label class="label">@Model.Video.Creator.Id</label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="Title">Title</label>
+                        <input type="text" asp-for="Title" class="input input-bordered block" />
+                        <span asp-validation-for="Title" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="Description">Description</label>
+                        <textarea asp-for="Description" class="textarea textarea-bordered block" rows="4"></textarea>
+                        <span asp-validation-for="Description" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="Url">Video URL</label>
+                        <input type="url" asp-for="Url" class="input input-bordered block" />
+                        <span asp-validation-for="Url" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="ThumbnailUrl">Thumbnail URL</label>
+                        <input type="url" asp-for="ThumbnailUrl" class="input input-bordered block" />
+                        <span asp-validation-for="ThumbnailUrl" class="text-error text-sm"></span>
+                        <label class="label">
+                            <span class="label-text-alt">Or upload a new image below</span>
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" asp-for="ThumbnailImage">Upload New Thumbnail Image</label>
+                        <input type="file" asp-for="ThumbnailImage" accept="image/*" class="file-input file-input-bordered w-full" />
+                        <span asp-validation-for="ThumbnailImage" class="text-error text-sm"></span>
+                        <label class="label">
+                            <span class="label-text-alt">Accepted formats: JPG, JPEG, PNG, GIF, WEBP (max 5MB)</span>
+                        </label>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Video.ThumbnailUrl))
+                    {
+                        <div class="form-control">
+                            <label class="label">Current Thumbnail</label>
+                            <img src="@Model.Video.ThumbnailUrl" alt="Thumbnail" class="max-w-xs rounded-lg" />
+                        </div>
+                    }
+
+                    <div class="form-control">
+                        <label class="label">Created At</label>
+                        <input type="text" value="@Model.Video.CreatedAt.ToLocalTime().ToString("g")" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Updated At</label>
+                        <input type="text" value="@Model.Video.UpdatedAt.ToLocalTime().ToString("g")" class="input input-bordered block" disabled />
+                    </div>
+                </div>
+
+                <div class="form-control mt-6">
+                    <div class="flex gap-4 justify-end">
+                        <a asp-action="Index" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <icon name="save" />
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

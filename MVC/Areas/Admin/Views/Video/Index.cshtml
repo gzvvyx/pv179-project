@@ -1,0 +1,82 @@
+@model List<VideoIndexViewModel>
+@{
+    ViewData["Title"] = "Video Management";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">Video Management</h1>
+            <p class="text-base-content/70 mt-2">View and manage all videos</p>
+        </div>
+        <a asp-route="AdminIndex" class="btn btn-ghost">
+            <icon name="arrow-left" />
+            Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>Creator</th>
+                            <th>URL</th>
+                            <th>Created At</th>
+                            <th>Updated At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="font-bold">#@item.Id</div>
+                                </td>
+                                <td>
+                                    <div class="font-medium">@item.Title</div>
+                                </td>
+                                <td>
+                                    <div class="text-sm max-w-xs truncate">@item.Description</div>
+                                </td>
+                                <td>
+                                    <div class="font-medium">@item.CreatorUserName</div>
+                                    <div class="text-sm opacity-50">@item.CreatorId</div>
+                                </td>
+                                <td>
+                                    <a href="@item.Url" target="_blank" class="link link-primary text-sm">View</a>
+                                </td>
+                                <td>
+                                    <div class="text-sm">@item.CreatedAt.ToLocalTime().ToString("g")</div>
+                                </td>
+                                <td>
+                                    <div class="text-sm">@item.UpdatedAt.ToLocalTime().ToString("g")</div>
+                                </td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">
+                                        <icon name="edit" />
+                                        Edit
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-8">
+                                    <p class="text-base-content/70">No videos found</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+

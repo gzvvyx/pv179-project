@@ -9,6 +9,5 @@ public class OrderCreateDto
     public string OrdererId { get; set; }
     [Required]
     public string CreatorId { get; set; }
-    [Required]
-    public required decimal Amount { get; set; }
+    public decimal? Amount { get; set; }
 }

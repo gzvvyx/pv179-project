@@ -3,10 +3,17 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Business.DTOs;
 using Business.Services;
+using Business.Validators;
+using DAL.Data;
 using DAL.Models;
+using ErrorOr;
+using FluentValidation;
 using Infra.DTOs;
 using Infra.Repository;
+using Infra.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -14,6 +21,30 @@ namespace Business.Tests;
 
 public class VideoServiceTests
 {
+    private readonly AppDbContext _dbContext;
+    private readonly IValidator<VideoCreateDto> _createValidator;
+    private readonly IValidator<VideoUpdateDto> _updateValidator;
+    private readonly Mock<IVideoRepository> _videoRepo;
+    private readonly Mock<IUserRepository> _userRepo;
+    private readonly Mock<IFileService> _fileService;
+    private readonly Mock<ILogger<VideoService>> _logger;
+    private readonly VideoService _service;
+
+    public VideoServiceTests()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        _dbContext = new AppDbContext(options);
+        _createValidator = new VideoCreateDtoValidator();
+        _updateValidator = new VideoUpdateDtoValidator();
+        _videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
+        _userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
+        _fileService = new Mock<IFileService>(MockBehavior.Strict);
+        _logger = new Mock<ILogger<VideoService>>();
+        _service = new VideoService(_videoRepo.Object, _userRepo.Object, _fileService.Object, _dbContext, _createValidator, _updateValidator, _logger.Object);
+    }
+
     private static User CreateUser(string id) => new User
     {
         Id = id,
@@ -49,9 +80,6 @@ public class VideoServiceTests
     [Fact]
     public async Task CreateAsync_ReturnsError_WhenCreatorNotFound()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
         var dto = new VideoCreateDto
         {
@@ -62,27 +90,22 @@ public class VideoServiceTests
             ThumbnailUrl = "https://example.com/t.jpg"
         };
 
-        userRepo.Setup(r => r.GetUserByIdAsync(dto.CreatorId))
+        _userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync((User?)null);
 
-        var (result, video) = await service.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto);
 
-        Assert.False(result.Succeeded);
-        Assert.Null(video);
-        var error = Assert.Single(result.Errors);
-        Assert.Equal("CreatorNotFound", error.Code);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.NotFound, result.FirstError.Type);
 
-        userRepo.Verify(r => r.GetUserByIdAsync(dto.CreatorId), Times.Once);
-        userRepo.VerifyNoOtherCalls();
-        videoRepo.VerifyNoOtherCalls();
+        _userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
+        _userRepo.VerifyNoOtherCalls();
+        _videoRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task CreateAsync_Success_CreatesVideoAndReturnsDto()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
         var dto = new VideoCreateDto
         {
@@ -93,19 +116,26 @@ public class VideoServiceTests
             ThumbnailUrl = "https://example.com/t.jpg"
         };
 
-        userRepo.Setup(r => r.GetUserByIdAsync(dto.CreatorId))
+        _userRepo.Setup(r => r.GetByIdAsync(dto.CreatorId))
             .ReturnsAsync(CreateUser(dto.CreatorId));
 
         Video? created = null;
-        videoRepo.Setup(r => r.AddAsync(It.IsAny<Video>()))
-            .Callback<Video>(v => created = v)
+        _videoRepo.Setup(r => r.CreateAsync(It.IsAny<Video>()))
+            .Callback<Video>(v => 
+            {
+                created = v;
+                var now = DateTime.UtcNow;
+                v.CreatedAt = now;
+                v.UpdatedAt = now;
+            })
             .Returns(Task.CompletedTask);
 
         var before = DateTime.UtcNow;
 
-        var (result, video) = await service.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto);
 
-        Assert.True(result.Succeeded);
+        Assert.False(result.IsError);
+        var video = result.Value;
         Assert.NotNull(video);
         Assert.NotNull(created);
 
@@ -115,7 +145,7 @@ public class VideoServiceTests
         Assert.Equal(dto.Url, created.Url);
         Assert.Equal(dto.ThumbnailUrl, created.ThumbnailUrl);
 
-        Assert.Equal(created.CreatorId, video!.CreatorId);
+        Assert.Equal(created.CreatorId, video!.Creator.Id);
         Assert.Equal(created.Title, video.Title);
         Assert.Equal(created.Description, video.Description);
         Assert.Equal(created.Url, video.Url);
@@ -123,142 +153,127 @@ public class VideoServiceTests
         Assert.True(video.CreatedAt >= before);
         Assert.True(video.UpdatedAt >= video.CreatedAt);
 
-        userRepo.Verify(r => r.GetUserByIdAsync(dto.CreatorId), Times.Once);
-        videoRepo.Verify(r => r.AddAsync(It.IsAny<Video>()), Times.Once);
-        userRepo.VerifyNoOtherCalls();
-        videoRepo.VerifyNoOtherCalls();
+        _userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
+        _videoRepo.Verify(r => r.CreateAsync(It.IsAny<Video>()), Times.Once);
+        _userRepo.VerifyNoOtherCalls();
+        _videoRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task GetAllAsync_ReturnsMappedList()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
         var list = new List<Video>
         {
             CreateVideo(1, "c1", "t1", "d1", "https://e.com/1", "https://e.com/1.jpg"),
             CreateVideo(2, "c2", "t2", "d2", "https://e.com/2", "https://e.com/2.jpg")
         };
-        videoRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(list);
+        _videoRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(list);
 
-        var result = await service.GetAllAsync();
+        var result = await _service.GetAllAsync();
 
         Assert.Equal(2, result.Count);
         Assert.Contains(result, v => v.Id == 1 && v.Title == "t1");
         Assert.Contains(result, v => v.Id == 2 && v.Title == "t2");
 
-        videoRepo.Verify(r => r.GetAllAsync(), Times.Once);
-        videoRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _videoRepo.Verify(r => r.GetAllAsync(), Times.Once);
+        _videoRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task GetByIdAsync_ReturnsNull_WhenNotFound()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
-        videoRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync((Video?)null);
+        _videoRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync((Video?)null);
 
-        var result = await service.GetByIdAsync(10);
+        var result = await _service.GetByIdAsync(10);
 
         Assert.Null(result);
-        videoRepo.Verify(r => r.GetByIdAsync(10), Times.Once);
-        videoRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _videoRepo.Verify(r => r.GetByIdAsync(10), Times.Once);
+        _videoRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task GetByIdAsync_ReturnsDto_WhenFound()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
         var video = CreateVideo(7, "c7", "t7", "d7", "https://e.com/7", "https://e.com/7.jpg");
-        videoRepo.Setup(r => r.GetByIdAsync(7)).ReturnsAsync(video);
+        _videoRepo.Setup(r => r.GetByIdAsync(7)).ReturnsAsync(video);
 
-        var dto = await service.GetByIdAsync(7);
+        var dto = await _service.GetByIdAsync(7);
 
         Assert.NotNull(dto);
         Assert.Equal(video.Id, dto!.Id);
         Assert.Equal(video.Title, dto.Title);
         Assert.Equal(video.Url, dto.Url);
 
-        videoRepo.Verify(r => r.GetByIdAsync(7), Times.Once);
-        videoRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _videoRepo.Verify(r => r.GetByIdAsync(7), Times.Once);
+        _videoRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task UpdateAsync_ReturnsError_WhenVideoNotFound()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
-        videoRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync((Video?)null);
+        var updateDto = new VideoUpdateDto { Id = 5, Title = "new" };
+        _videoRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync((Video?)null);
 
-        var (result, updated) = await service.UpdateAsync(5, new VideoUpdateDto { Title = "new" });
+        var result = await _service.UpdateAsync(updateDto);
 
-        Assert.False(result.Succeeded);
-        Assert.Null(updated);
-        var error = Assert.Single(result.Errors);
-        Assert.Equal("VideoNotFound", error.Code);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.NotFound, result.FirstError.Type);
 
-        videoRepo.Verify(r => r.GetByIdAsync(5), Times.Once);
-        videoRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _videoRepo.Verify(r => r.GetByIdAsync(5), Times.Once);
+        _videoRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task UpdateAsync_ReturnsError_WhenNewCreatorNotFound()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
         var existing = CreateVideo(9, "c-old", "t", "d", "https://e.com/v", "https://e.com/t.jpg");
-        videoRepo.Setup(r => r.GetByIdAsync(9)).ReturnsAsync(existing);
+        _videoRepo.Setup(r => r.GetByIdAsync(9)).ReturnsAsync(existing);
 
-        userRepo.Setup(r => r.GetUserByIdAsync("c-new")).ReturnsAsync((User?)null);
+        _userRepo.Setup(r => r.GetByIdAsync("c-new")).ReturnsAsync((User?)null);
 
-        var (result, updated) = await service.UpdateAsync(9, new VideoUpdateDto { CreatorId = "c-new" });
+        var updateDto = new VideoUpdateDto { Id = 9, CreatorId = "c-new" };
+        var result = await _service.UpdateAsync(updateDto);
 
-        Assert.False(result.Succeeded);
-        Assert.Null(updated);
-        var error = Assert.Single(result.Errors);
-        Assert.Equal("CreatorNotFound", error.Code);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.NotFound, result.FirstError.Type);
 
-        videoRepo.Verify(r => r.GetByIdAsync(9), Times.Once);
-        userRepo.Verify(r => r.GetUserByIdAsync("c-new"), Times.Once);
-        videoRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _videoRepo.Verify(r => r.GetByIdAsync(9), Times.Once);
+        _userRepo.Verify(r => r.GetByIdAsync("c-new"), Times.Once);
+        _videoRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task UpdateAsync_UpdatesFields_WhenProvided()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
         var existing = CreateVideo(12, "c1", "t1", "d1", "https://e.com/1", "https://e.com/1.jpg", DateTime.UtcNow.AddHours(-2), DateTime.UtcNow.AddHours(-1));
-        videoRepo.Setup(r => r.GetByIdAsync(12)).ReturnsAsync(existing);
+        _videoRepo.Setup(r => r.GetByIdAsync(12)).ReturnsAsync(existing);
 
-        userRepo.Setup(r => r.GetUserByIdAsync("c2"))
+        _userRepo.Setup(r => r.GetByIdAsync("c2"))
             .ReturnsAsync(CreateUser("c2"));
 
         Video? saved = null;
-        videoRepo.Setup(r => r.UpdateAsync(It.IsAny<Video>()))
-            .Callback<Video>(v => saved = v)
+        _videoRepo.Setup(r => r.UpdateAsync(It.IsAny<Video>()))
+            .Callback<Video>(v => 
+            {
+                saved = v;
+                v.UpdatedAt = DateTime.UtcNow;
+            })
             .Returns(Task.CompletedTask);
 
         var update = new VideoUpdateDto
         {
+            Id = 12,
             CreatorId = "c2",
             Title = "t2",
             Description = "d2",
@@ -266,9 +281,10 @@ public class VideoServiceTests
             ThumbnailUrl = "https://e.com/2.jpg"
         };
 
-        var (result, dto) = await service.UpdateAsync(12, update);
+        var result = await _service.UpdateAsync(update);
 
-        Assert.True(result.Succeeded);
+        Assert.False(result.IsError);
+        var dto = result.Value;
         Assert.NotNull(dto);
         Assert.NotNull(saved);
 
@@ -279,66 +295,56 @@ public class VideoServiceTests
         Assert.Equal("https://e.com/2.jpg", saved.ThumbnailUrl);
         Assert.True(saved.UpdatedAt >= saved.CreatedAt);
 
-        Assert.Equal(saved.CreatorId, dto!.CreatorId);
+        Assert.Equal(saved.CreatorId, dto!.Creator.Id);
         Assert.Equal(saved.Title, dto.Title);
         Assert.Equal(saved.Description, dto.Description);
         Assert.Equal(saved.Url, dto.Url);
         Assert.Equal(saved.ThumbnailUrl, dto.ThumbnailUrl);
 
-        videoRepo.Verify(r => r.GetByIdAsync(12), Times.Once);
-        userRepo.Verify(r => r.GetUserByIdAsync("c2"), Times.Once);
-        videoRepo.Verify(r => r.UpdateAsync(It.IsAny<Video>()), Times.Once);
-        videoRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _videoRepo.Verify(r => r.GetByIdAsync(12), Times.Once);
+        _userRepo.Verify(r => r.GetByIdAsync("c2"), Times.Once);
+        _videoRepo.Verify(r => r.UpdateAsync(It.IsAny<Video>()), Times.Once);
+        _videoRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task DeleteAsync_ReturnsError_WhenVideoNotFound()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
-        videoRepo.Setup(r => r.GetByIdAsync(3)).ReturnsAsync((Video?)null);
+        _videoRepo.Setup(r => r.GetByIdAsync(3)).ReturnsAsync((Video?)null);
 
-        var result = await service.DeleteAsync(3);
+        var result = await _service.DeleteAsync(3);
 
-        Assert.False(result.Succeeded);
-        var error = Assert.Single(result.Errors);
-        Assert.Equal("VideoNotFound", error.Code);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.NotFound, result.FirstError.Type);
 
-        videoRepo.Verify(r => r.GetByIdAsync(3), Times.Once);
-        videoRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _videoRepo.Verify(r => r.GetByIdAsync(3), Times.Once);
+        _videoRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task DeleteAsync_Success_DeletesVideo()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
         var existing = CreateVideo(13, "c13", "t", "d", "https://e.com/v", "https://e.com/t.jpg");
-        videoRepo.Setup(r => r.GetByIdAsync(13)).ReturnsAsync(existing);
-        videoRepo.Setup(r => r.DeleteAsync(existing)).Returns(Task.CompletedTask);
+        _videoRepo.Setup(r => r.GetByIdAsync(13)).ReturnsAsync(existing);
+        _videoRepo.Setup(r => r.DeleteAsync(existing)).Returns(Task.CompletedTask);
 
-        var result = await service.DeleteAsync(13);
+        var result = await _service.DeleteAsync(13);
 
-        Assert.True(result.Succeeded);
+        Assert.False(result.IsError);
 
-        videoRepo.Verify(r => r.GetByIdAsync(13), Times.Once);
-        videoRepo.Verify(r => r.DeleteAsync(existing), Times.Once);
-        videoRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _videoRepo.Verify(r => r.GetByIdAsync(13), Times.Once);
+        _videoRepo.Verify(r => r.DeleteAsync(existing), Times.Once);
+        _videoRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task GetByFilterAsync_ReturnsMappedList()
     {
-        var videoRepo = new Mock<IVideoRepository>(MockBehavior.Strict);
-        var userRepo = new Mock<IUserRepository>(MockBehavior.Strict);
-        var service = new VideoService(videoRepo.Object, userRepo.Object);
 
         var filter = new VideoFilterDto { Title = "hello" };
         var videos = new List<Video>
@@ -346,16 +352,16 @@ public class VideoServiceTests
             CreateVideo(21, "c1", "hello 1", "d", "https://e.com/1", "https://e.com/1.jpg"),
             CreateVideo(22, "c2", "hello 2", "d", "https://e.com/2", "https://e.com/2.jpg")
         };
-        videoRepo.Setup(r => r.GetByFilterAsync(filter)).ReturnsAsync(videos);
+        _videoRepo.Setup(r => r.GetByFilterAsync(filter)).ReturnsAsync(videos);
 
-        var result = await service.GetByFilterAsync(filter);
+        var result = await _service.GetByFilterAsync(filter);
 
         Assert.Equal(2, result.Count);
         Assert.All(result, v => Assert.Contains("hello", v.Title, StringComparison.OrdinalIgnoreCase));
 
-        videoRepo.Verify(r => r.GetByFilterAsync(filter), Times.Once);
-        videoRepo.VerifyNoOtherCalls();
-        userRepo.VerifyNoOtherCalls();
+        _videoRepo.Verify(r => r.GetByFilterAsync(filter), Times.Once);
+        _videoRepo.VerifyNoOtherCalls();
+        _userRepo.VerifyNoOtherCalls();
     }
 }
 

@@ -1,0 +1,98 @@
+@model EditOrderViewModel
+@{
+    ViewData["Title"] = "Edit Order";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">Edit Order #@Model.Order.Id</h1>
+            <p class="text-base-content/70 mt-2">Update order details</p>
+        </div>
+        <a asp-action="Index" class="btn btn-ghost">
+            <icon name="arrow-left" />
+            Back to Orders
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-error mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form asp-action="Edit" asp-route-id="@Model.Order.Id" method="post">
+                @Html.AntiForgeryToken()
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="form-control">
+                        <label class="label">Order ID</label>
+                        <input type="text" value="#@Model.Order.Id" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Status</label>
+                        <select asp-for="Status" asp-items="Model.Statuses" class="select select-bordered block">
+                            <option value="">-- Select Status --</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Orderer</label>
+                        <input type="text" value="@Model.OrdererName" class="input input-bordered block" disabled />
+                        <label class="label">@Model.Order.Orderer.Id</label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Creator</label>
+                        <input type="text" value="@Model.CreatorName" class="input input-bordered block" disabled />
+                        <label class="label">@Model.Order.Creator.Id</label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Amount</label>
+                        <input type="number" asp-for="Amount" step="0.01" class="input input-bordered block" />
+                        <span asp-validation-for="Amount" class="text-error text-sm"></span>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Created At</label>
+                        <input type="text" value="@Model.Order.CreatedAt.ToLocalTime().ToString("g")" class="input input-bordered block" disabled />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">Updated At</label>
+                        <input type="text" value="@Model.Order.UpdatedAt.ToLocalTime().ToString("g")" class="input input-bordered block" disabled />
+                    </div>
+                </div>
+
+                <div class="form-control mt-6">
+                    <div class="flex gap-4 justify-end">
+                        <a asp-action="Index" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <icon name="save" />
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

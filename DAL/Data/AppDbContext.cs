@@ -17,6 +17,10 @@ public class AppDbContext : IdentityDbContext<User>
     public DbSet<Playlist> Playlists { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<Category> Categories { get; set; }
+    public DbSet<VideoCategory> VideoCategories { get; set; }
+    public DbSet<GiftCard> GiftCards { get; set; }
+    public DbSet<GiftCardCode> GiftCardCodes { get; set; }
 
     public AppDbContext(DbContextOptions options, ICurrentUserService? currentUserService = null) : base(options)
     {
@@ -105,5 +109,16 @@ public class AppDbContext : IdentityDbContext<User>
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<AuditLog>().ToTable("AuditLogs");
+        
+        // Configure VideoCategory relationship with unique constraint
+        modelBuilder.Entity<VideoCategory>()
+            .HasIndex(vc => new { vc.VideoId, vc.CategoryId })
+            .IsUnique();
+            
+        // Ensure only one primary category per video (PostgreSQL syntax)
+        modelBuilder.Entity<VideoCategory>()
+            .HasIndex(vc => new { vc.VideoId, vc.IsPrimary })
+            .HasFilter("\"IsPrimary\" = true")
+            .IsUnique();
     }
 }

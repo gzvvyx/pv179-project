@@ -1,0 +1,97 @@
+@model List<CategoryIndexViewModel>
+@{
+    ViewData["Title"] = "Category Management";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold">Category Management</h1>
+            <p class="text-base-content/70 mt-2">View and manage all categories</p>
+        </div>
+        <div class="flex gap-4">
+            <a asp-action="Create" class="btn btn-primary">
+                <icon name="plus" />
+                Create New Category
+            </a>
+            <a asp-route="AdminIndex" class="btn btn-ghost">
+                <icon name="arrow-left" />
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-error mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Created At</th>
+                            <th>Updated At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var category in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="font-bold">#@category.Id</div>
+                                </td>
+                                <td>
+                                    <div class="font-semibold">@category.Name</div>
+                                </td>
+                                <td>
+                                    <div class="text-sm">@category.CreatedAt.ToLocalTime().ToString("g")</div>
+                                </td>
+                                <td>
+                                    <div class="text-sm">@category.UpdatedAt.ToLocalTime().ToString("g")</div>
+                                </td>
+                                <td>
+                                    <div class="flex gap-2">
+                                        <a asp-action="Edit" asp-route-id="@category.Id" class="btn btn-sm btn-primary">
+                                            <icon name="edit" />
+                                            Edit
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-8">
+                                    <p class="text-base-content/70">No categories found</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+

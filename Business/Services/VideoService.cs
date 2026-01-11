@@ -1,9 +1,14 @@
 using Business.DTOs;
-using Infra.DTOs;
+using Business.Extensions;
 using Business.Mappers;
+using DAL.Data;
 using DAL.Models;
+using ErrorOr;
+using FluentValidation;
+using Infra.DTOs;
 using Infra.Repository;
-using Microsoft.AspNetCore.Identity;
+using Infra.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Business.Services;
 
@@ -11,12 +16,29 @@ public class VideoService : IVideoService
 {
     private readonly IVideoRepository _videoRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IFileService _fileService;
+    private readonly IValidator<VideoCreateDto> _createValidator;
+    private readonly IValidator<VideoUpdateDto> _updateValidator;
+    private readonly AppDbContext _dbContext;
+    private readonly ILogger<VideoService> _logger;
     private readonly VideoMapper _mapper = new();
 
-    public VideoService(IVideoRepository videoRepository, IUserRepository userRepository)
+    public VideoService(
+        IVideoRepository videoRepository, 
+        IUserRepository userRepository,
+        IFileService fileService,
+        AppDbContext dbContext,
+        IValidator<VideoCreateDto> createValidator,
+        IValidator<VideoUpdateDto> updateValidator,
+        ILogger<VideoService> logger)
     {
         _videoRepository = videoRepository;
         _userRepository = userRepository;
+        _fileService = fileService;
+        _dbContext = dbContext;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
+        _logger = logger;
     }
 
     public async Task<List<VideoDto>> GetAllAsync()
@@ -28,22 +50,22 @@ public class VideoService : IVideoService
     public async Task<VideoDto?> GetByIdAsync(int id)
     {
         var video = await _videoRepository.GetByIdAsync(id);
-        return video is null ? null : _mapper.Map(video);
+        return video == null ? null : _mapper.Map(video);
     }
 
-    public async Task<(IdentityResult Result, VideoDto? Video)> CreateAsync(VideoCreateDto dto)
+    public async Task<ErrorOr<VideoDto>> CreateAsync(VideoCreateDto dto)
     {
-        var creator = await _userRepository.GetUserByIdAsync(dto.CreatorId);
-        if (creator is null)
+        var validationResult = await _createValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "CreatorNotFound",
-                Description = $"Creator with id '{dto.CreatorId}' was not found."
-            }), null);
+            return validationResult.ToErrors();
         }
 
-        var timestamp = DateTime.UtcNow;
+        var creator = await _userRepository.GetByIdAsync(dto.CreatorId);
+        if (creator is null)
+        {
+            return Error.NotFound();
+        }
 
         var video = new Video
         {
@@ -54,93 +76,168 @@ public class VideoService : IVideoService
             Description = dto.Description,
             Url = dto.Url,
             ThumbnailUrl = dto.ThumbnailUrl,
-            CreatedAt = timestamp,
-            UpdatedAt = timestamp
+            CreatedAt = default,
+            UpdatedAt = default
         };
 
-        await _videoRepository.AddAsync(video);
+        await _videoRepository.CreateAsync(video);
+        await _dbContext.SaveChangesAsync();
 
-        return (IdentityResult.Success, _mapper.Map(video));
+        return _mapper.Map(video);
     }
 
-    public async Task<(IdentityResult Result, VideoDto? Video)> UpdateAsync(int id, VideoUpdateDto dto)
+    public async Task<ErrorOr<VideoDto>> UpdateAsync(VideoUpdateDto dto)
     {
-        var video = await _videoRepository.GetByIdAsync(id);
+        var validationResult = await _updateValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
+        {
+            return validationResult.ToErrors();
+        }
+
+        var video = await _videoRepository.GetByIdAsync(dto.Id);
 
         if (video is null)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "VideoNotFound",
-                Description = $"Video with id '{id}' was not found."
-            }), null);
+            return Error.NotFound();
         }
 
-        if (!string.IsNullOrWhiteSpace(dto.CreatorId) && !string.Equals(video.CreatorId, dto.CreatorId, StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(dto.CreatorId))
         {
-            var newCreator = await _userRepository.GetUserByIdAsync(dto.CreatorId);
+            var newCreator = await _userRepository.GetByIdAsync(dto.CreatorId);
             if (newCreator is null)
             {
-                return (IdentityResult.Failed(new IdentityError
-                {
-                    Code = "CreatorNotFound",
-                    Description = $"Creator with id '{dto.CreatorId}' was not found."
-                }), null);
+                return Error.NotFound();
             }
 
             video.CreatorId = dto.CreatorId;
             video.Creator = newCreator;
         }
 
-        if (!string.IsNullOrWhiteSpace(dto.Title) && !string.Equals(video.Title, dto.Title, StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(dto.Title))
         {
             video.Title = dto.Title;
         }
 
-        if (!string.IsNullOrWhiteSpace(dto.Description) && !string.Equals(video.Description, dto.Description, StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(dto.Description))
         {
             video.Description = dto.Description;
         }
 
-        if (!string.IsNullOrWhiteSpace(dto.Url) && !string.Equals(video.Url, dto.Url, StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(dto.Url))
         {
             video.Url = dto.Url;
         }
 
-        if (!string.IsNullOrWhiteSpace(dto.ThumbnailUrl) && !string.Equals(video.ThumbnailUrl, dto.ThumbnailUrl, StringComparison.OrdinalIgnoreCase))
+        if (dto.ThumbnailImageBytes != null && dto.ThumbnailImageBytes.Length > 0 && 
+            !string.IsNullOrWhiteSpace(dto.ThumbnailImageFileName))
+        {
+            var thumbnailResult = await ProcessThumbnailUploadAsync(
+                dto.ThumbnailImageBytes, 
+                dto.ThumbnailImageFileName, 
+                video.ThumbnailUrl);
+            
+            if (thumbnailResult.IsError)
+            {
+                return thumbnailResult.FirstError;
+            }
+            
+            video.ThumbnailUrl = thumbnailResult.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.ThumbnailUrl))
         {
             video.ThumbnailUrl = dto.ThumbnailUrl;
         }
 
-        video.UpdatedAt = DateTime.UtcNow;
-
         await _videoRepository.UpdateAsync(video);
+        await _dbContext.SaveChangesAsync();
 
-        return (IdentityResult.Success, _mapper.Map(video));
+        return _mapper.Map(video);
     }
 
-    public async Task<IdentityResult> DeleteAsync(int id)
+    private async Task<ErrorOr<string>> ProcessThumbnailUploadAsync(
+        byte[] fileBytes, 
+        string fileName, 
+        string? currentThumbnailUrl = null)
+    {
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
+        
+        if (!allowedExtensions.Contains(fileExtension))
+        {
+            return Error.Validation(
+                nameof(fileName),
+                "Only image files (jpg, jpeg, png, gif, webp) are allowed.");
+        }
+
+        const long maxFileSize = 5 * 1024 * 1024;
+        if (fileBytes.Length > maxFileSize)
+        {
+            return Error.Validation(
+                nameof(fileBytes),
+                "File size must be less than 5MB.");
+        }
+
+        try
+        {
+            if (!string.IsNullOrEmpty(currentThumbnailUrl) && 
+                !currentThumbnailUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                var oldThumbnailPath = currentThumbnailUrl.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase)
+                    ? currentThumbnailUrl.Substring("/uploads/".Length)
+                    : currentThumbnailUrl;
+                
+                await _fileService.DeleteFileAsync(oldThumbnailPath);
+            }
+
+            var relativePath = await _fileService.SaveFileAsync(fileBytes, fileName, "thumbnails");
+            
+            var thumbnailUrl = $"/uploads/{relativePath}";
+            
+            _logger.LogInformation("Thumbnail uploaded successfully: {ThumbnailUrl}", thumbnailUrl);
+            
+            return thumbnailUrl;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading thumbnail image: {FileName}", fileName);
+            return Error.Failure(
+                nameof(fileBytes),
+                "An error occurred while uploading the image. Please try again.");
+        }
+    }
+
+    public async Task<ErrorOr<Success>> DeleteAsync(int id)
     {
         var video = await _videoRepository.GetByIdAsync(id);
 
         if (video is null)
         {
-            return IdentityResult.Failed(new IdentityError
-            {
-                Code = "VideoNotFound",
-                Description = $"Video with id '{id}' was not found."
-            });
+            return Error.NotFound();
         }
 
         await _videoRepository.DeleteAsync(video);
+        await _dbContext.SaveChangesAsync();
 
-        return IdentityResult.Success;
+        return Result.Success;
     }
 
     public async Task<List<VideoDto>> GetByFilterAsync(VideoFilterDto dto)
     {
         var videos = await _videoRepository.GetByFilterAsync(dto);
-
         return _mapper.Map(videos);
+    }
+
+    public async Task<PagedResultDto<VideoDto>> GetByFilterPagedAsync(VideoFilterDto dto)
+    {
+        var videos = await _videoRepository.GetByFilterAsync(dto);
+        var totalCount = await _videoRepository.GetFilteredCountAsync(dto);
+
+        return new PagedResultDto<VideoDto>
+        {
+            Items = _mapper.Map(videos),
+            TotalCount = totalCount,
+            PageNumber = dto.PageNumber,
+            PageSize = dto.PageSize
+        };
     }
 }

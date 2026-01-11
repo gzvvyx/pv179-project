@@ -9,13 +9,21 @@
         <ProjectReference Include="..\Business\Business.csproj" />
         <ProjectReference Include="..\Common\Common.csproj" />
         <ProjectReference Include="..\Infra\Infra.csproj" />
-        <ProjectReference Include="..\Common\Common.csproj" />
         <ProjectReference Include="..\DAL\DAL.csproj" />
     </ItemGroup>
     <ItemGroup>
+      <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
       <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.22" />
+      <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.0" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.22" />
       <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
+      <PackageReference Include="Serilog" Version="4.3.0" />
+      <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+      <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
+      <PackageReference Include="Serilog.Sinks.PostgreSQL" Version="2.3.0" />
+      <PackageReference Include="SerilogTracing" Version="2.3.1" />
+      <PackageReference Include="SerilogTracing.Expressions" Version="2.3.1" />
+      <PackageReference Include="SerilogTracing.Instrumentation.AspNetCore" Version="2.3.1" />
     </ItemGroup>
     <ItemGroup>
       <_ContentIncludedByDefault Remove="Areas\Identity\Pages\Account\AccessDenied.cshtml" />
@@ -55,7 +63,6 @@
       <_ContentIncludedByDefault Remove="Areas\Identity\Pages\Account\_StatusMessage.cshtml" />
       <_ContentIncludedByDefault Remove="Areas\Identity\Pages\Account\_ViewImports.cshtml" />
       <_ContentIncludedByDefault Remove="Areas\Identity\Pages\Error.cshtml" />
-      <_ContentIncludedByDefault Remove="Areas\Identity\Pages\_ValidationScriptsPartial.cshtml" />
       <_ContentIncludedByDefault Remove="Areas\Identity\Pages\_ViewImports.cshtml" />
       <_ContentIncludedByDefault Remove="Areas\Identity\Pages\_ViewStart.cshtml" />
     </ItemGroup>

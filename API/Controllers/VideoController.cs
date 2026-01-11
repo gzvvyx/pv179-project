@@ -1,3 +1,6 @@
+using API.Extensions;
+using API.DTOs;
+using API.Mappers;
 using Business.DTOs;
 using Infra.DTOs;
 using Business.Services;
@@ -11,6 +14,7 @@ public class VideoController : ControllerBase
 {
     private readonly ILogger<VideoController> _logger;
     private readonly IVideoService _videoService;
+    private readonly VideoRequestMapper _mapper = new();
 
     public VideoController(ILogger<VideoController> logger, IVideoService videoService)
     {
@@ -35,6 +39,47 @@ public class VideoController : ControllerBase
         return await _videoService.GetByFilterAsync(filter);
     }
 
+    [HttpGet("paged", Name = "GetVideosPaged")]
+    public async Task<ActionResult<PagedResultDto<VideoDto>>> GetPaged(
+        [FromQuery] string? title,
+        [FromQuery] string? description,
+        [FromQuery] string? author,
+        [FromQuery] int? categoryId,
+        [FromQuery] List<int>? categoryIds,
+        [FromQuery] string? fromDate,
+        [FromQuery] string? toDate,
+        [FromQuery] string? sortBy = "CreatedAt",
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 12
+    )
+    {
+        var filter = new VideoFilterDto
+        {
+            Title = title,
+            Description = description,
+            CreatorId = author,
+            CategoryId = categoryId,
+            CategoryIds = categoryIds,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+
+        if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var parsedFromDate))
+        {
+            filter.FromDate = parsedFromDate;
+        }
+        if (!string.IsNullOrEmpty(toDate) && DateTime.TryParse(toDate, out var parsedToDate))
+        {
+            filter.ToDate = parsedToDate;
+        }
+
+        var result = await _videoService.GetByFilterPagedAsync(filter);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}", Name = "GetVideoById")]
     public async Task<ActionResult<VideoDto>> GetById(int id)
     {
@@ -50,42 +95,51 @@ public class VideoController : ControllerBase
     [HttpPost(Name = "CreateVideo")]
     public async Task<ActionResult<VideoDto>> Create([FromBody] VideoCreateDto dto)
     {
-        if (!ModelState.IsValid)
+        var result = await _videoService.CreateAsync(dto);
+
+        if (result.IsError)
         {
-            return ValidationProblem(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, video) = await _videoService.CreateAsync(dto);
-
-        if (!result.Succeeded || video is null)
-        {
-            return BadRequest(result.Errors.Select(error => error.Description));
-        }
-
-        return CreatedAtRoute("GetVideoById", new { id = video.Id }, video);
+        return CreatedAtRoute("GetVideoById", new { id = result.Value.Id }, result.Value);
     }
 
     [HttpPut("{id:int}", Name = "UpdateVideo")]
-    public async Task<ActionResult<VideoDto>> Update(int id, [FromBody] VideoUpdateDto dto)
+    public async Task<ActionResult<VideoDto>> Update(int id, [FromBody] VideoUpdateRequestDto dto)
     {
-        if (!ModelState.IsValid)
+        byte[]? thumbnailImageBytes = null;
+        string? thumbnailImageFileName = null;
+
+        if (!string.IsNullOrWhiteSpace(dto.ThumbnailImageBase64))
         {
-            return ValidationProblem(ModelState);
+            try
+            {
+                var base64String = dto.ThumbnailImageBase64;
+                if (base64String.Contains(","))
+                {
+                    base64String = base64String.Split(',')[1];
+                }
+                thumbnailImageBytes = Convert.FromBase64String(base64String);
+                thumbnailImageFileName = dto.ThumbnailImageFileName ?? "thumbnail.jpg";
+            }
+            catch (FormatException)
+            {
+                return BadRequest("Invalid base64 image data.");
+            }
         }
 
-        var (result, video) = await _videoService.UpdateAsync(id, dto);
-
-        if (result.Succeeded && video is not null)
+        var updateDto = _mapper.ToBusinessDto(dto, id);
+        
+        if (thumbnailImageBytes != null && !string.IsNullOrEmpty(thumbnailImageFileName))
         {
-            return Ok(video);
+            updateDto.ThumbnailImageBytes = thumbnailImageBytes;
+            updateDto.ThumbnailImageFileName = thumbnailImageFileName;
         }
 
-        if (result.Errors.Any(error => error.Code == "VideoNotFound"))
-        {
-            return NotFound();
-        }
+        var result = await _videoService.UpdateAsync(updateDto);
 
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return result.ToActionResult();
     }
 
     [HttpDelete("{id:int}", Name = "DeleteVideo")]
@@ -93,17 +147,7 @@ public class VideoController : ControllerBase
     {
         var result = await _videoService.DeleteAsync(id);
 
-        if (result.Succeeded)
-        {
-            return NoContent();
-        }
-
-        if (result.Errors.Any(error => error.Code == "VideoNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return result.ToActionResult();
     }
 }
 

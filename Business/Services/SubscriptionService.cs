@@ -1,9 +1,12 @@
 ﻿using Business.DTOs;
+using Business.Extensions;
 using Business.Mappers;
+using DAL.Data;
 using DAL.Models;
 using DAL.Models.Enums;
+using ErrorOr;
+using FluentValidation;
 using Infra.Repository;
-using Microsoft.AspNetCore.Identity;
 
 namespace Business.Services;
 
@@ -11,12 +14,23 @@ public class SubscriptionService : ISubscriptionService
 {
     private readonly ISubscriptionRepository _subscriptionRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IValidator<SubscriptionCreateDto> _createValidator;
+    private readonly IValidator<SubscriptionUpdateDto> _updateValidator;
+    private readonly AppDbContext _dbContext;
     private readonly SubscriptionMapper _mapper = new();
 
-    public SubscriptionService(ISubscriptionRepository subscriptionRepository, IUserRepository userRepository)
+    public SubscriptionService(
+        ISubscriptionRepository subscriptionRepository, 
+        IUserRepository userRepository,
+        AppDbContext dbContext,
+        IValidator<SubscriptionCreateDto> createValidator,
+        IValidator<SubscriptionUpdateDto> updateValidator)
     {
         _subscriptionRepository = subscriptionRepository;
         _userRepository = userRepository;
+        _dbContext = dbContext;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
     }
 
     public async Task<List<SubscriptionDto>> GetAllAsync()
@@ -25,32 +39,41 @@ public class SubscriptionService : ISubscriptionService
         return _mapper.Map(subscriptions);
     }
 
+    public async Task<List<SubscriptionWithUsersDto>> GetAllWithUsersAsync()
+    {
+        var subscriptions = await _subscriptionRepository.GetAllWithUsersAsync();
+        return subscriptions.Select(subscription => new SubscriptionWithUsersDto
+        {
+            Subscription = _mapper.Map(subscription),
+            OrdererName = subscription.Orderer?.UserName ?? "Unknown",
+            CreatorName = subscription.Creator?.UserName ?? "Unknown"
+        }).ToList();
+    }
+
     public async Task<SubscriptionDto?> GetByIdAsync(int id)
     {
         var subscription = await _subscriptionRepository.GetByIdAsync(id);
         return subscription == null ? null : _mapper.Map(subscription);
     }
 
-    public async Task<(IdentityResult Result, SubscriptionDto? Subscription)> CreateAsync(SubscriptionCreateDto dto)
+    public async Task<ErrorOr<SubscriptionDto>> CreateAsync(SubscriptionCreateDto dto)
     {
-        var creator = await _userRepository.GetUserByIdAsync(dto.CreatorId);
-        if (creator is null)
+        var validationResult = await _createValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "CreatorNotFound",
-                Description = $"Creator with id '{dto.CreatorId}' was not found."
-            }), null);
+            return validationResult.ToErrors();
         }
 
-        var orderer = await _userRepository.GetUserByIdAsync(dto.OrdererId);
+        var creator = await _userRepository.GetByIdAsync(dto.CreatorId);
+        if (creator is null)
+        {
+            return Error.NotFound();
+        }
+
+        var orderer = await _userRepository.GetByIdAsync(dto.OrdererId);
         if (orderer is null)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "OrdererNotFound",
-                Description = $"Orderer with id '{dto.OrdererId}' was not found."
-            }), null);
+            return Error.NotFound();
         }
 
         var timestamp = DateTime.UtcNow;
@@ -62,12 +85,11 @@ public class SubscriptionService : ISubscriptionService
             Orderer = orderer,
             CreatorId = dto.CreatorId,
             Creator = creator,
-            Active = dto.Active,
-            Timeframe = dto.Timeframe,
-
+            Active = dto.Active!.Value,
+            Timeframe = dto.Timeframe!.Value,
             SubscribedAt = timestamp,
             LastRenewedAt = timestamp,
-            ExpiresAt = timestamp + dto.Timeframe switch
+            ExpiresAt = timestamp + dto.Timeframe.Value switch
             {
                 SubscriptionTimeframe.Month => TimeSpan.FromDays(30),
                 SubscriptionTimeframe.HalfYear => TimeSpan.FromDays(182),
@@ -75,60 +97,83 @@ public class SubscriptionService : ISubscriptionService
                 _ => TimeSpan.FromDays(30)
             },
             
-            CreatedAt = timestamp,
-            UpdatedAt = timestamp
+            CreatedAt = default,
+            UpdatedAt = default
         };
         
         await _subscriptionRepository.CreateAsync(subscription);
+        await _dbContext.SaveChangesAsync();
 
-        return (IdentityResult.Success, _mapper.Map(subscription));
+        return _mapper.Map(subscription);
     }
 
-    public async Task<(IdentityResult Result, SubscriptionDto? Subscription)> UpdateAsync(int id, SubscriptionUpdateDto dto)
+    public async Task<ErrorOr<SubscriptionDto>> UpdateAsync(SubscriptionUpdateDto dto)
     {
-        var subscription = await _subscriptionRepository.GetByIdAsync(id);
+        var validationResult = await _updateValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
+        {
+            return validationResult.ToErrors();
+        }
+
+        var subscription = await _subscriptionRepository.GetByIdAsync(dto.Id);
 
         if (subscription is null)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "SubscriptionNotFound",
-                Description = $"Subscription with id '{id}' was not found."
-            }), null);
+            return Error.NotFound();
         }
 
-        if (dto.Active.HasValue && subscription.Active != dto.Active)
+        if (dto.Active.HasValue)
         {
             subscription.Active = dto.Active.Value;
         }
 
-        if (dto.Timeframe.HasValue && subscription.Timeframe != dto.Timeframe)
+        if (dto.Timeframe.HasValue)
         {
             subscription.Timeframe = dto.Timeframe.Value;
         }
 
-        subscription.UpdatedAt = DateTime.UtcNow;
+        if (dto.LastRenewedAt.HasValue)
+        {
+            var lastRenewedAt = dto.LastRenewedAt.Value;
+            subscription.LastRenewedAt = lastRenewedAt.Kind switch
+            {
+                DateTimeKind.Utc => lastRenewedAt,
+                DateTimeKind.Local => lastRenewedAt.ToUniversalTime(),
+                DateTimeKind.Unspecified => DateTime.SpecifyKind(lastRenewedAt, DateTimeKind.Utc),
+                _ => lastRenewedAt.ToUniversalTime()
+            };
+        }
+
+        if (dto.ExpiresAt.HasValue)
+        {
+            var expiresAt = dto.ExpiresAt.Value;
+            subscription.ExpiresAt = expiresAt.Kind switch
+            {
+                DateTimeKind.Utc => expiresAt,
+                DateTimeKind.Local => expiresAt.ToUniversalTime(),
+                DateTimeKind.Unspecified => DateTime.SpecifyKind(expiresAt, DateTimeKind.Utc),
+                _ => expiresAt.ToUniversalTime()
+            };
+        }
 
         await _subscriptionRepository.UpdateAsync(subscription);
+        await _dbContext.SaveChangesAsync();
 
-        return (IdentityResult.Success, _mapper.Map(subscription));
+        return _mapper.Map(subscription);
     }
 
-    public async Task<IdentityResult> DeleteAsync(int id)
+    public async Task<ErrorOr<Success>> DeleteAsync(int id)
     {
         var subscription = await _subscriptionRepository.GetByIdAsync(id);
 
         if (subscription is null)
         {
-            return IdentityResult.Failed(new IdentityError
-            {
-                Code = "SubscriptionNotFound",
-                Description = $"Subscription with id '{id}' was not found."
-            });
+            return Error.NotFound();
         }
 
         await _subscriptionRepository.DeleteAsync(subscription);
+        await _dbContext.SaveChangesAsync();
 
-        return IdentityResult.Success;
+        return Result.Success;
     }
 }

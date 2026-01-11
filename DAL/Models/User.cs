@@ -5,6 +5,8 @@ namespace DAL.Models;
 
 public class User : IdentityUser
 {
+    public decimal? PricePerMonth { get; set; }
+
     [InverseProperty(nameof(Video.Creator))]
     public ICollection<Video> Videos { get; set; } = new List<Video>();
 

@@ -1,5 +1,6 @@
 ﻿using Business.DTOs;
 using DAL.Models;
+using DAL.Models.Enums;
 using Riok.Mapperly.Abstractions;
 
 namespace Business.Mappers;
@@ -8,5 +9,6 @@ namespace Business.Mappers;
 public partial class OrderMapper
 {
     public partial List<OrderDto> Map(List<Order> orders);
+    
     public partial OrderDto Map(Order order);
 }

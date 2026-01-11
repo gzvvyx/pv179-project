@@ -1,5 +1,6 @@
 ﻿using DAL.Data;
 using DAL.Models;
+using Infra.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repository
@@ -17,6 +18,7 @@ namespace Infra.Repository
         {
             return _dbContext.Playlists
                 .AsNoTracking()
+                .Include(playlist => playlist.Creator)
                 .ToListAsync();
         }
 
@@ -35,25 +37,103 @@ namespace Infra.Repository
             }
 
             await _dbContext.Playlists.AddAsync(playlist);
-            await _dbContext.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(Playlist playlist)
         {
-
             if (playlist.Creator is not null)
             {
                 _dbContext.Attach(playlist.Creator);
             }
 
             _dbContext.Playlists.Update(playlist);
-            await _dbContext.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(Playlist playlist)
         {
             _dbContext.Playlists.Remove(playlist);
-            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<List<Playlist>> GetByFilterAsync(PlaylistFilterDto dto)
+        {
+            var query = _dbContext.Playlists
+                .Include(p => p.Creator)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
+            {
+                var searchTerm = dto.Name ?? dto.Description;
+                query = query.Where(playlist =>
+                    EF.Functions.ILike(playlist.Name, $"%{searchTerm}%") ||
+                    (playlist.Description != null && EF.Functions.ILike(playlist.Description, $"%{searchTerm}%"))
+                );
+            }
+
+            if (!string.IsNullOrEmpty(dto.CreatorId))
+            {
+                query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
+            }
+
+            if (dto.FromDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedAt >= dto.FromDate.Value);
+            }
+
+            if (dto.ToDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedAt <= dto.ToDate.Value);
+            }
+
+            query = dto.SortBy?.ToLower() switch
+            {
+                "name" => dto.SortDescending
+                    ? query.OrderByDescending(p => p.Name)
+                    : query.OrderBy(p => p.Name),
+                "updatedat" => dto.SortDescending
+                    ? query.OrderByDescending(p => p.UpdatedAt)
+                    : query.OrderBy(p => p.UpdatedAt),
+                _ => dto.SortDescending
+                    ? query.OrderByDescending(p => p.CreatedAt)
+                    : query.OrderBy(p => p.CreatedAt)
+            };
+
+            query = query
+                .Skip((dto.PageNumber - 1) * dto.PageSize)
+                .Take(dto.PageSize);
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<int> GetFilteredCountAsync(PlaylistFilterDto dto)
+        {
+            var query = _dbContext.Playlists.AsQueryable();
+
+            if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
+            {
+                var searchTerm = dto.Name ?? dto.Description;
+                query = query.Where(playlist =>
+                    EF.Functions.ILike(playlist.Name, $"%{searchTerm}%") ||
+                    (playlist.Description != null && EF.Functions.ILike(playlist.Description, $"%{searchTerm}%"))
+                );
+            }
+
+            if (!string.IsNullOrEmpty(dto.CreatorId))
+            {
+                query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
+            }
+
+            if (dto.FromDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedAt >= dto.FromDate.Value);
+            }
+
+            if (dto.ToDate.HasValue)
+            {
+                query = query.Where(p => p.CreatedAt <= dto.ToDate.Value);
+            }
+
+            return await query.CountAsync();
         }
     }
 }

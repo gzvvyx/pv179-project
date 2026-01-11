@@ -54,6 +54,30 @@ namespace DAL.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("DAL.Models.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Categories");
+                });
+
             modelBuilder.Entity("DAL.Models.Comment", b =>
                 {
                     b.Property<int>("Id")
@@ -92,6 +116,59 @@ namespace DAL.Migrations
                     b.HasIndex("VideoId");
 
                     b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("DAL.Models.GiftCard", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("PriceReduction")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ValidTo")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("GiftCards");
+                });
+
+            modelBuilder.Entity("DAL.Models.GiftCardCode", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("GiftCardId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Used")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Code");
+
+                    b.HasIndex("GiftCardId");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.ToTable("GiftCardCodes");
                 });
 
             modelBuilder.Entity("DAL.Models.Order", b =>
@@ -251,6 +328,9 @@ namespace DAL.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<decimal?>("PricePerMonth")
+                        .HasColumnType("numeric");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
@@ -312,6 +392,43 @@ namespace DAL.Migrations
                     b.HasIndex("CreatorId");
 
                     b.ToTable("Videos");
+                });
+
+            modelBuilder.Entity("DAL.Models.VideoCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VideoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("VideoId", "CategoryId")
+                        .IsUnique();
+
+                    b.HasIndex("VideoId", "IsPrimary")
+                        .IsUnique()
+                        .HasFilter("\"IsPrimary\" = true");
+
+                    b.ToTable("VideoCategories");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -486,6 +603,23 @@ namespace DAL.Migrations
                     b.Navigation("Video");
                 });
 
+            modelBuilder.Entity("DAL.Models.GiftCardCode", b =>
+                {
+                    b.HasOne("DAL.Models.GiftCard", "GiftCard")
+                        .WithMany("Codes")
+                        .HasForeignKey("GiftCardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DAL.Models.Order", "Order")
+                        .WithOne("GiftCardCode")
+                        .HasForeignKey("DAL.Models.GiftCardCode", "OrderId");
+
+                    b.Navigation("GiftCard");
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("DAL.Models.Order", b =>
                 {
                     b.HasOne("DAL.Models.User", "Creator")
@@ -544,6 +678,25 @@ namespace DAL.Migrations
                         .IsRequired();
 
                     b.Navigation("Creator");
+                });
+
+            modelBuilder.Entity("DAL.Models.VideoCategory", b =>
+                {
+                    b.HasOne("DAL.Models.Category", "Category")
+                        .WithMany("VideoCategories")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DAL.Models.Video", "Video")
+                        .WithMany("VideoCategories")
+                        .HasForeignKey("VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Video");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -612,9 +765,24 @@ namespace DAL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("DAL.Models.Category", b =>
+                {
+                    b.Navigation("VideoCategories");
+                });
+
             modelBuilder.Entity("DAL.Models.Comment", b =>
                 {
                     b.Navigation("Replies");
+                });
+
+            modelBuilder.Entity("DAL.Models.GiftCard", b =>
+                {
+                    b.Navigation("Codes");
+                });
+
+            modelBuilder.Entity("DAL.Models.Order", b =>
+                {
+                    b.Navigation("GiftCardCode");
                 });
 
             modelBuilder.Entity("DAL.Models.User", b =>
@@ -637,6 +805,8 @@ namespace DAL.Migrations
             modelBuilder.Entity("DAL.Models.Video", b =>
                 {
                     b.Navigation("Comments");
+
+                    b.Navigation("VideoCategories");
                 });
 #pragma warning restore 612, 618
         }

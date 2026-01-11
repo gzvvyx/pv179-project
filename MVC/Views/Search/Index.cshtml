@@ -1,0 +1,38 @@
+@model pv179.Models.SearchViewModel
+@{
+    ViewData["Title"] = "Search";
+}
+
+<div class="py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Search Header -->
+        <div class="mb-8 text-center">
+            <h1 class="text-4xl font-bold mb-4">Search</h1>
+            <p class="text-lg opacity-70">Find videos, playlists, and creators</p>
+        </div>
+
+        <!-- Main Search Bar -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body p-6">
+                <form method="get" asp-action="All">
+                    <div class="flex gap-3">
+                        <!-- Search Input -->
+                        <input type="text" 
+                               name="query" 
+                               placeholder="What are you looking for?" 
+                               class="input input-bordered input-lg flex-1"
+                               value="@Model.Query"
+                               required
+                               autofocus />
+
+                        <!-- Search Button -->
+                        <button type="submit" class="btn btn-primary btn-lg px-8">
+                            <icon name="search" class="w-5 h-5" />
+                            Search
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

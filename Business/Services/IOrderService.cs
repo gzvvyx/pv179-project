@@ -1,13 +1,15 @@
 ﻿using Business.DTOs;
-using Microsoft.AspNetCore.Identity;
+using ErrorOr;
 
 namespace Business.Services;
 
 public interface IOrderService
 {
     Task<List<OrderDto>> GetAllAsync();
+    Task<List<OrderWithUsersDto>> GetAllWithUsersAsync();
     Task<OrderDto?> GetByIdAsync(int id);
-    Task<(IdentityResult Result, OrderDto? Order)> CreateAsync(OrderCreateDto orderDto);
-    Task<(IdentityResult Result, OrderDto? Order)> UpdateAsync(int id, OrderUpdateDto orderDto);
-    Task<IdentityResult> DeleteAsync(int id);
+    Task<List<OrderDto>> GetByOrdererIdAsync(string ordererId);
+    Task<ErrorOr<OrderDto>> CreateAsync(OrderCreateDto orderDto);
+    Task<ErrorOr<OrderDto>> UpdateAsync(OrderUpdateDto orderDto);
+    Task<ErrorOr<Success>> DeleteAsync(int id);
 }

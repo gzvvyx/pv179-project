@@ -1,5 +1,7 @@
-﻿using Business.DTOs;
+﻿using API.Extensions;
+using Business.DTOs;
 using Business.Services;
+using Infra.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -18,9 +20,57 @@ public class PlaylistController : ControllerBase
     }
 
     [HttpGet(Name = "GetPlaylists")]
-    public async Task<IEnumerable<PlaylistDto>> Get()
+    public async Task<IEnumerable<PlaylistDto>> Get(
+        [FromQuery] string? name,
+        [FromQuery] string? description,
+        [FromQuery] string? creatorId
+    )
     {
-        return await _playlistService.GetAllAsync();
+        var filter = new PlaylistFilterDto
+        {
+            Name = name,
+            Description = description,
+            CreatorId = creatorId
+        };
+
+        return await _playlistService.GetByFilterAsync(filter);
+    }
+
+    [HttpGet("paged", Name = "GetPlaylistsPaged")]
+    public async Task<ActionResult<PagedResultDto<PlaylistDto>>> GetPaged(
+        [FromQuery] string? name,
+        [FromQuery] string? description,
+        [FromQuery] string? creatorId,
+        [FromQuery] string? fromDate,
+        [FromQuery] string? toDate,
+        [FromQuery] string? sortBy = "CreatedAt",
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 12
+    )
+    {
+        var filter = new PlaylistFilterDto
+        {
+            Name = name,
+            Description = description,
+            CreatorId = creatorId,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+
+        if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var parsedFromDate))
+        {
+            filter.FromDate = parsedFromDate;
+        }
+        if (!string.IsNullOrEmpty(toDate) && DateTime.TryParse(toDate, out var parsedToDate))
+        {
+            filter.ToDate = parsedToDate;
+        }
+
+        var result = await _playlistService.GetByFilterPagedAsync(filter);
+        return Ok(result);
     }
 
     [HttpGet("{id:int}", Name = "GetPlaylistById")]
@@ -39,42 +89,28 @@ public class PlaylistController : ControllerBase
     [HttpPost(Name = "CreatePlaylist")]
     public async Task<ActionResult<PlaylistDto>> Create([FromBody] PlaylistCreateDto dto)
     {
-        if (!ModelState.IsValid)
+        var result = await _playlistService.CreateAsync(dto);
+
+        if (result.IsError)
         {
-            return ValidationProblem(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, playlist) = await _playlistService.CreateAsync(dto);
-
-        if (!result.Succeeded || playlist is null)
-        {
-            return BadRequest(result.Errors.Select(error => error.Description));
-        }
-
-        return CreatedAtRoute("GetPlaylistById", new { id = playlist.Id }, playlist);
+        return CreatedAtRoute("GetPlaylistById", new { id = result.Value.Id }, result.Value);
     }
 
     [HttpPut("{id:int}", Name = "UpdatePlaylist")]
     public async Task<ActionResult<PlaylistDto>> Update(int id, [FromBody] PlaylistUpdateDto dto)
     {
-        if (!ModelState.IsValid)
+        dto.Id = id;
+        var result = await _playlistService.UpdateAsync(dto);
+
+        if (result.IsError)
         {
-            return ValidationProblem(ModelState);
+            return result.ToActionResult();
         }
 
-        var (result, playlist) = await _playlistService.UpdateAsync(id, dto);
-
-        if (result.Succeeded || playlist is not null)
-        {
-            return Ok(playlist);
-        }
-
-        if (result.Errors.Any(error => error.Code == "PlaylistNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return Ok(result.Value);
     }
 
     [HttpDelete("{id:int}", Name = "DeletePlaylist")]
@@ -82,16 +118,6 @@ public class PlaylistController : ControllerBase
     {
         var result = await _playlistService.DeleteAsync(id);
 
-        if (result.Succeeded)
-        {
-            return NoContent();
-        }
-
-        if (result.Errors.Any(error => error.Code == "PlaylistNotFound"))
-        {
-            return NotFound();
-        }
-
-        return BadRequest(result.Errors.Select(error => error.Description));
+        return result.ToActionResult();
     }
 }

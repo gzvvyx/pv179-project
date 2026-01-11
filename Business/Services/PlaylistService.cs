@@ -1,8 +1,12 @@
 ﻿using Business.DTOs;
+using Business.Extensions;
 using Business.Mappers;
+using DAL.Data;
 using DAL.Models;
+using ErrorOr;
+using FluentValidation;
+using Infra.DTOs;
 using Infra.Repository;
-using Microsoft.AspNetCore.Identity;
 
 namespace Business.Services
 {
@@ -11,13 +15,25 @@ namespace Business.Services
         private readonly IPlaylistRepository _playlistRepository;
         private readonly IVideoRepository _videoRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IValidator<PlaylistCreateDto> _createValidator;
+        private readonly IValidator<PlaylistUpdateDto> _updateValidator;
+        private readonly AppDbContext _dbContext;
         private readonly PlaylistMapper _mapper = new();
 
-        public PlaylistService(IPlaylistRepository playlistRepository, IVideoRepository videoRepository, IUserRepository userRepository)
+        public PlaylistService(
+            IPlaylistRepository playlistRepository, 
+            IVideoRepository videoRepository, 
+            IUserRepository userRepository,
+            AppDbContext dbContext,
+            IValidator<PlaylistCreateDto> createValidator,
+            IValidator<PlaylistUpdateDto> updateValidator)
         {
             _playlistRepository = playlistRepository;
             _videoRepository = videoRepository;
             _userRepository = userRepository;
+            _dbContext = dbContext;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
 
         public async Task<List<PlaylistDto>> GetAllAsync()
@@ -29,73 +45,100 @@ namespace Business.Services
         public async Task<PlaylistDto?> GetByIdAsync(int id)
         {
             var playlist = await _playlistRepository.GetByIdAsync(id);
-            return playlist is null ? null : _mapper.Map(playlist);
+            return playlist == null ? null : _mapper.Map(playlist);
         }
 
-        public async Task<(IdentityResult Result, PlaylistDto? Playlist)> CreateAsync(PlaylistCreateDto dto)
+        public async Task<ErrorOr<PlaylistDto>> CreateAsync(PlaylistCreateDto dto)
         {
-            var user = await _userRepository.GetUserByIdAsync(dto.CreatorId);
-            if (user is null)
+            var validationResult = await _createValidator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
             {
-                return (IdentityResult.Failed(new IdentityError
-                {
-                    Code = "UserNotFound",
-                    Description = $"User with id '{dto.CreatorId}' was not found."
-                }), null);
+                return validationResult.ToErrors();
             }
-            var timestamp = DateTime.UtcNow;
-            var playlist = new Playlist()
+
+            var creator = await _userRepository.GetByIdAsync(dto.CreatorId);
+            if (creator is null)
+            {
+                return Error.NotFound();
+            }
+
+            var playlist = new Playlist
             {
                 Id = default,
-                Name = dto.Name,
+                Name = dto.Name!,
                 Description = dto.Description,
-                CreatedAt = timestamp,
-                UpdatedAt = timestamp,
                 CreatorId = dto.CreatorId,
-                Creator = user,
-                Videos = new List<Video>()
+                Creator = creator,
+                Videos = new List<Video>(),
+                CreatedAt = default,
+                UpdatedAt = default
             };
 
             await _playlistRepository.CreateAsync(playlist);
-            return (IdentityResult.Success, _mapper.Map(playlist));
+            await _dbContext.SaveChangesAsync();
+
+            return _mapper.Map(playlist);
         }
 
-        public async Task<(IdentityResult Result, PlaylistDto? Playlist)> UpdateAsync(int id, PlaylistUpdateDto dto)
+        public async Task<ErrorOr<PlaylistDto>> UpdateAsync(PlaylistUpdateDto dto)
         {
-            var playlist = await _playlistRepository.GetByIdAsync(id);
-            if (playlist is null)
+            var validationResult = await _updateValidator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
             {
-                return (IdentityResult.Failed(new IdentityError
-                {
-                    Code = "PlaylistNotFound",
-                    Description = $"Playlist with id '{id}' was not found."
-                }), null);
+                return validationResult.ToErrors();
             }
 
-            playlist.Name = dto.Name;
+            var playlist = await _playlistRepository.GetByIdAsync(dto.Id);
+            if (playlist is null)
+            {
+                return Error.NotFound();
+            }
+
+            if (dto.Name != null)
+            {
+                playlist.Name = dto.Name;
+            }
+
             playlist.Description = dto.Description;
-            playlist.UpdatedAt = DateTime.UtcNow;
 
             await _playlistRepository.UpdateAsync(playlist);
-            return (IdentityResult.Success, _mapper.Map(playlist));
+            await _dbContext.SaveChangesAsync();
+
+            return _mapper.Map(playlist);
         }
 
-        public async Task<IdentityResult> DeleteAsync(int id)
+        public async Task<ErrorOr<Success>> DeleteAsync(int id)
         {
             var playlist = await _playlistRepository.GetByIdAsync(id);
             if (playlist is null)
             {
-                return IdentityResult.Failed(new IdentityError
-                {
-                    Code = "PlaylistNotFound",
-                    Description = $"Playlist with id '{id}' was not found."
-                });
+                return Error.NotFound();
             }
 
             await _playlistRepository.DeleteAsync(playlist);
-            return IdentityResult.Success;
+            await _dbContext.SaveChangesAsync();
+
+            return Result.Success;
         }
 
+        public async Task<List<PlaylistDto>> GetByFilterAsync(PlaylistFilterDto dto)
+        {
+            var playlists = await _playlistRepository.GetByFilterAsync(dto);
+            return _mapper.Map(playlists);
+        }
 
+        public async Task<PagedResultDto<PlaylistDto>> GetByFilterPagedAsync(PlaylistFilterDto dto)
+        {
+            var playlists = await _playlistRepository.GetByFilterAsync(dto);
+            var totalCount = await _playlistRepository.GetFilteredCountAsync(dto);
+
+            return new PagedResultDto<PlaylistDto>
+            {
+                Items = _mapper.Map(playlists),
+                TotalCount = totalCount,
+                PageNumber = dto.PageNumber,
+                PageSize = dto.PageSize
+            };
+        }
     }
 }

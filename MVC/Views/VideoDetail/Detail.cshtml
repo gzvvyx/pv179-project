@@ -1,0 +1,99 @@
+﻿@using Business.DTOs
+@using System.Security.Claims
+@model VideoDto
+@{
+    ViewData["Title"] = Model.Title;
+    var sortedCategories = Model.Categories.OrderByDescending(vc => vc.IsPrimary).ToList();
+    var visibleCategories = sortedCategories.Take(3).ToList();
+    var remainingCount = sortedCategories.Count - 3;
+    var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var isOwner = !string.IsNullOrEmpty(currentUserId) && Model.Creator.Id == currentUserId;
+}
+
+<a asp-controller="Search" asp-action="All" class="btn btn-ghost mb-4">
+    <icon name="arrow-left" />
+    Back to Search
+</a>
+
+<div class="max-w-3xl mx-auto py-8">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            <icon name="check-circle" size="24" />
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-error mb-4">
+            <icon name="x-circle" size="24" />
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <div class="aspect-video bg-base-300 flex items-center justify-center rounded-lg mb-6 relative" style="min-height:320px;">
+        @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
+        {
+            <img src="@Model.ThumbnailUrl" alt="@Model.Title" class="w-full h-full object-cover rounded-lg" />
+        }
+        else
+        {
+            <span class="text-2xl opacity-50">Mock Video Player</span>
+        }
+    </div>
+    
+    <h1 class="text-3xl font-bold mb-2">@Model.Title</h1>
+    <div class="mb-4 text-base opacity-70">@Model.Description</div>
+    <div class="flex flex-wrap gap-1 items-center mb-6">
+        @foreach (var videoCategory in visibleCategories)
+        {
+            if (videoCategory.IsPrimary)
+            {
+                <span class="badge badge-xs badge-accent gap-1 font-semibold">
+                    @videoCategory.Category.Name
+                </span>
+            }
+            else
+            {
+                <span class="badge badge-xs badge-primary gap-1">
+                    @videoCategory.Category.Name
+                </span>
+            }
+        }
+        @if (remainingCount > 0)
+        {
+            <span class="text-xs opacity-60">+@remainingCount more</span>
+        }
+    </div>
+    <div class="text-sm opacity-60 mb-2">
+        Uploaded by <b>@Model.Creator.UserName</b> on @Model.CreatedAt.ToShortDateString()
+    </div>
+
+    @if (isOwner)
+    {
+        <div class="card bg-base-100 shadow-xl mt-6">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Upload New Thumbnail</h2>
+                <form asp-action="UploadThumbnail" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Select Thumbnail Image</span>
+                        </label>
+                        <input type="file" name="thumbnailImage" accept="image/*" class="file-input file-input-bordered w-full" required />
+                        <label class="label">
+                            <span class="label-text-alt">Accepted formats: JPG, JPEG, PNG, GIF, WEBP (max 5MB)</span>
+                        </label>
+                    </div>
+                    <div class="form-control mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <icon name="upload" />
+                            Upload Thumbnail
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+</div>
