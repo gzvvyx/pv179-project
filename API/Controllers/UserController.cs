@@ -47,18 +47,6 @@ public class UserController : ControllerBase
         return Ok(user);
     }
 
-    [HttpGet("{id}/details", Name = "GetUserDetailsById")]
-    public async Task<ActionResult<UserDetailsDto>> GetDetailsById(string id)
-    {
-        var userDetails = await _userService.GetDetailsByIdAsync(id);
-        if (userDetails is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(userDetails);
-    }
-
     [HttpGet("paged", Name = "GetUsersPaged")]
     public async Task<ActionResult<PagedResultDto<UserDto>>> GetPaged(
         [FromQuery] string? userName,

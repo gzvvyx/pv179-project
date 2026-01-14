@@ -1,5 +1,6 @@
 ﻿using Business.DTOs;
 using ErrorOr;
+using Infra.DTOs;
 
 namespace Business.Services
 {

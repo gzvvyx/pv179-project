@@ -1,5 +1,6 @@
 ﻿using DAL.Data;
 using DAL.Models;
+using Infra.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repository
