@@ -5,26 +5,115 @@ using Business.DTOs;
 using System.Threading.Tasks;
 using System.Security.Claims;
 using MVC.Extensions;
+using MVC.Models;
 
 namespace MVC.Controllers;
 
 public class VideoDetailController : Controller
 {
     private readonly IVideoService _videoService;
+    private readonly ICommentService _commentService;
     private readonly ILogger<VideoDetailController> _logger;
 
-    public VideoDetailController(IVideoService videoService, ILogger<VideoDetailController> logger)
+    public VideoDetailController(
+        IVideoService videoService,
+        ICommentService commentService,
+        ILogger<VideoDetailController> logger)
     {
         _videoService = videoService;
+        _commentService = commentService;
         _logger = logger;
     }
 
-    public async Task<IActionResult> Detail(int id)
+    public async Task<IActionResult> Detail(int id, string? returnUrl = null)
     {
         var video = await _videoService.GetByIdAsync(id);
         if (video == null)
             return NotFound();
-        return View(video);
+
+        var comments = await _commentService.GetByVideoIdAsync(id);
+        
+        var viewModel = new VideoDetailViewModel
+        {
+            Video = video,
+            Comments = comments,
+            ReturnUrl = returnUrl
+        };
+
+        return View(viewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize]
+    public async Task<IActionResult> AddComment(int id, string content, string? returnUrl = null)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            TempData["ErrorMessage"] = "Comment cannot be empty.";
+            return RedirectToAction(nameof(Detail), new { id, returnUrl });
+        }
+
+        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return Forbid();
+        }
+
+        var commentDto = new CommentCreateDto
+        {
+            VideoId = id,
+            AuthorId = currentUserId,
+            Content = content
+        };
+
+        var result = await _commentService.CreateAsync(commentDto);
+
+        if (result.IsError)
+        {
+            result.AddErrorsToModelState(ModelState);
+            TempData["ErrorMessage"] = "Failed to post comment. Please try again.";
+            _logger.LogWarning("Failed to create comment for video {VideoId}: {Errors}", id, string.Join(", ", result.Errors));
+        }
+        else
+        {
+            _logger.LogInformation("Comment created for video {VideoId} by user {UserId}", id, currentUserId);
+        }
+
+        return RedirectToAction(nameof(Detail), new { id, returnUrl });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize]
+    public async Task<IActionResult> DeleteComment(int id, int commentId, string? returnUrl = null)
+    {
+        var comment = await _commentService.GetByIdAsync(commentId);
+        if (comment == null)
+        {
+            TempData["ErrorMessage"] = "Comment not found.";
+            return RedirectToAction(nameof(Detail), new { id, returnUrl });
+        }
+
+        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(currentUserId) || comment.Author.Id != currentUserId)
+        {
+            return Forbid();
+        }
+
+        var result = await _commentService.DeleteAsync(commentId);
+
+        if (result.IsError)
+        {
+            TempData["ErrorMessage"] = "Failed to delete comment.";
+            _logger.LogWarning("Failed to delete comment {CommentId}: {Errors}", commentId, string.Join(", ", result.Errors));
+        }
+        else
+        {
+            _logger.LogInformation("Comment {CommentId} deleted by user {UserId}", commentId, currentUserId);
+        }
+
+        return RedirectToAction(nameof(Detail), new { id, returnUrl });
     }
 
     [HttpPost]
