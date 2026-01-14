@@ -46,7 +46,7 @@
                     </div>
                 }
             </div>
-            <a asp-controller="VideoDetail" asp-action="Detail" asp-route-id="@Model.Id" class="btn btn-primary btn-sm">
+            <a asp-controller="VideoDetail" asp-action="Detail" asp-route-id="@Model.Id" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" class="btn btn-primary btn-sm">
                 <icon name="play" />
                 Watch
             </a>
