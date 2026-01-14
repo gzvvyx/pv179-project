@@ -5,6 +5,7 @@ using DAL.Data;
 using DAL.Models;
 using ErrorOr;
 using FluentValidation;
+using Infra.DTOs;
 using Infra.Repository;
 
 namespace Business.Services

@@ -74,4 +74,11 @@ public class SubscriptionRepository : ISubscriptionRepository
     {
         _dbContext.Subscriptions.Remove(subscription);
     }
+
+    public Task<bool> IsUserSubscribedAsync(User orderer, User creator)
+    {
+        return _dbContext.Subscriptions
+            .AsNoTracking()
+            .AnyAsync(s => s.OrdererId == orderer.Id && s.CreatorId == creator.Id);
+    }
 }

@@ -1,106 +1,113 @@
-﻿@model pv179.Models.UserDetailsViewModel
+﻿@model pv179.Models.UserViewModel
 @{
     ViewData["Title"] = Model.UserName;
+    bool isLocked = !Model.IsCurrentUser && !Model.IsSubscribed;
 }
 
-<div class="container">
-    <div class="d-flex">
-        <div class="d-flex align-items-center">
-            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3 text-white">
-                @Model.UserName
+<div class="card bg-base-100 shadow-xl mb-8 border border-base-200">
+    <div class="card-body flex flex-row items-center gap-6">
+        <div class="avatar placeholder">
+            <div class="bg-primary text-primary-content rounded-full w-20 h-20 text-center flex items-center justify-center">
+                <span class="text-3xl uppercase font-bold">@Model.UserName[0]</span>
             </div>
-            <p class="text-muted small mb-0"><i class="bi bi-envelope-fill me-1"></i> @Model.Email</p>
+        </div>
+        <div class="flex-1">
+            <h2 class="card-title text-3xl">@Model.UserName</h2>
+            <p class="opacity-60">@Model.Email</p>
         </div>
 
-        <div>
-            <a asp-controller="Subscription" asp-action="Subscribe" asp-route-creatorId="@Model.Id" 
-               class="btn btn-danger btn-lg rounded-pill fw-bold px-4">
-                <i class="bi bi-bell-fill me-2"></i>Subscribe
-            </a>
-        </div>
-    </div>
-
-    <ul class="nav nav-pills nav-fill bg-light mb-4 rounded p-2 shadow-sm" id="profileTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active py-3" id="videos-tab" data-bs-toggle="tab" data-bs-target="#videos" type="button" role="tab">
-                <span class="d-block fw-bold">Videos</span>
-                <small>@Model.VideoCount</small>
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link py-3" id="playlists-tab" data-bs-toggle="tab" data-bs-target="#playlists" type="button" role="tab">
-                <span class="d-block fw-bold">Playlists</span>
-                <small>@Model.PlaylistCount</small>
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link py-3" id="comments-tab" data-bs-toggle="tab" data-bs-target="#comments" type="button" role="tab">
-                <span class="d-block fw-bold">Comments</span>
-                <small>@Model.CommentCount</small>
-            </button>
-        </li>
-    </ul>
-
-    <div class="tab-content rounded border bg-white" id="profileTabsContent">
-
-        <div class="tab-pane fade show active p-4" id="videos" role="tabpanel">
-            <h4 class="mb-4">Uploaded Videos</h4>
-            @if (!Model.UploadedVideos.Any())
+        <div id="subscription-ui">
+            @if (!Model.IsCurrentUser)
             {
-                <div class="py-5 text-center">
-                    <i class="bi bi-camera-video text-muted display-4"></i>
-                    <p class="text-muted mt-2">No videos uploaded yet.</p>
-                </div>
+                @if (Model.IsSubscribed)
+                {
+                    <button class="btn btn-ghost border-base-300 rounded-full px-8 gap-2">
+                        <i class="bi bi-check-lg text-success"></i> Subscribed
+                    </button>
+                }
             }
             else
             {
-                <div class="list-group list-group-flush">
-                    @foreach (var video in Model.UploadedVideos)
-                    {
-                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-play-circle-fill text-primary fs-4 me-3"></i>
-                                <h6 class="mb-0">@video.Title</h6>
-                            </div>
-                            <a asp-action="Details" asp-controller="Videos" asp-route-id="@video.Id" class="btn btn-sm btn-outline-primary rounded-pill">Watch</a>
-                        </div>
-                    }
-                </div>
+                <a asp-controller="User" asp-action="Edit" class="btn btn-outline rounded-full px-8">
+                    Edit Profile
+                </a>
             }
         </div>
+    </div>
+</div>
 
-        <div class="tab-pane fade p-4" id="playlists" role="tabpanel">
-            <h4 class="mb-4">Playlists</h4>
-            <div class="row row-cols-1 row-cols-md-2 g-3">
-                @foreach (var playlist in Model.CreatedPlaylists)
-                {
-                    <div class="col">
-                        <div class="card bg-light border-0 shadow-sm">
-                            <div class="card-body">
-                                <h6 class="card-title fw-bold">@playlist.Name</h6>
-                                <a href="#" class="btn btn-sm btn-link text-decoration-none p-0">View Playlist &rarr;</a>
-                            </div>
-                        </div>
-                    </div>
-                }
+<div class="relative">
+
+    @if (isLocked)
+    {
+        <div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-base-100/20 backdrop-blur-md rounded-box border border-base-300">
+            <div class="bg-base-100 p-8 rounded-2xl shadow-2xl text-center max-w-sm border border-primary/10">
+                <div class="bg-primary/10 text-primary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="bi bi-lock-fill text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-2">Exclusive Content</h3>
+                <p class="opacity-70 mb-6">Subscribe to see @Model.UserName's full library of videos and playlists.</p>
+                <a asp-controller="Subscription" asp-action="Subscribe" asp-route-creatorId="@Model.Id"
+                   class="btn btn-primary btn-block rounded-full">
+                    Subscribe to Unlock for <span>@Model.PricePerMonth?.ToString("F2")$</span>
+                </a>
             </div>
         </div>
+    }
 
-        <div class="tab-pane fade p-4" id="comments" role="tabpanel">
-            <h4 class="mb-4">Comments</h4>
-            @foreach (var comment in Model.Comments)
-            {
-                <div class="d-flex mb-4">
-                    <div class="me-3">
-                        <i class="bi bi-chat-left-text text-muted fs-5"></i>
-                    </div>
-                    <div class="border-bottom w-100 pb-3">
-                        <p class="text-dark mb-1">@comment.Content</p>
-                        <small class="text-muted">Posted on @comment.CreatedAt.ToString("MMM dd, yyyy")</small>
-                    </div>
+    <div class="@(isLocked ? "blur-md select-none pointer-events-none opacity-50" : "")">
+        <div role="tablist" class="tabs tabs-lift bg-base-200 p-2">
+            <input type="radio" name="user_tabs" role="tab" class="tab h-auto py-4 text-xl ml-4" aria-label="Videos" checked />
+            <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 shadow-xl min-h-[400px]">
+                <h4 class="text-lg font-bold mb-6">
+                    Videos <span class="badge badge-secondary ml-2">@Model.Videos.TotalCount</span>
+                </h4>
+
+                <div id="video-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var video in Model.Videos.Items)
+                    {
+                        <partial name="_VideoCard" model="video" />
+                    }
                 </div>
-            }
-        </div>
 
+                <div id="video-load-more" class="mt-10 text-center">
+                    @if (Model.HasMore(Model.Videos))
+                    {
+                        <button class="btn btn-outline btn-primary rounded-full px-10"
+                                hx-get="@Url.Action("LoadMoreVideos", "User", new { userId = Model.Id, page = 2 })"
+                                hx-target="#video-grid"
+                                hx-swap="beforeend">
+                            Show More
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <input type="radio" name="user_tabs" role="tab" class="tab h-auto py-4 text-xl" aria-label="Playlists" />
+            <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 mt-4 shadow-xl min-h-[400px]">
+                <h4 class="text-lg font-bold mb-6">
+                    Playlists <span class="badge badge-accent ml-2">@Model.Playlists.TotalCount</span>
+                </h4>
+
+                <div id="playlist-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var playlist in Model.Playlists.Items)
+                    {
+                        <partial name="_PlaylistCard" model="playlist" />
+                    }
+                </div>
+
+                <div id="playlist-load-more" class="mt-10 text-center">
+                    @if (Model.HasMore(Model.Playlists))
+                    {
+                        <button class="btn btn-outline btn-primary rounded-full px-10"
+                                hx-get="@Url.Action("LoadMorePlaylists", "User", new { userId = Model.Id, page = 2 })"
+                                hx-target="#playlist-grid"
+                                hx-swap="beforeend">
+                            Show More
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
 </div>

@@ -176,4 +176,21 @@ public class SubscriptionService : ISubscriptionService
 
         return Result.Success;
     }
+
+    public async Task<ErrorOr<bool>> IsUserSubscribedAsync(string ordererId, string creatorId)
+    {
+        var creator = await _userRepository.GetByIdAsync(creatorId);
+        if (creator is null)
+        {
+            return Error.NotFound();
+        }
+
+        var orderer = await _userRepository.GetByIdAsync(ordererId);
+        if (orderer is null)
+        {
+            return Error.NotFound();
+        }
+
+        return await _subscriptionRepository.IsUserSubscribedAsync(orderer, creator);
+    }
 }
