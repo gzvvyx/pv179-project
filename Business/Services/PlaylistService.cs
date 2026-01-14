@@ -18,7 +18,8 @@ namespace Business.Services
         private readonly IValidator<PlaylistCreateDto> _createValidator;
         private readonly IValidator<PlaylistUpdateDto> _updateValidator;
         private readonly AppDbContext _dbContext;
-        private readonly PlaylistMapper _mapper = new();
+        private readonly PlaylistMapper _playlistMapper = new();
+        private readonly VideoMapper _videoMapper = new();
 
         public PlaylistService(
             IPlaylistRepository playlistRepository, 
@@ -39,13 +40,27 @@ namespace Business.Services
         public async Task<List<PlaylistDto>> GetAllAsync()
         {
             var playlists = await _playlistRepository.GetAllAsync();
-            return _mapper.Map(playlists);
+            return _playlistMapper.Map(playlists);
         }
 
         public async Task<PlaylistDto?> GetByIdAsync(int id)
         {
             var playlist = await _playlistRepository.GetByIdAsync(id);
-            return playlist == null ? null : _mapper.Map(playlist);
+            return playlist == null ? null : _playlistMapper.Map(playlist);
+        }
+
+        public async Task<(PlaylistDto Playlist, List<VideoDto> Videos)?> GetByIdWithVideosAsync(int id)
+        {
+            var playlist = await _playlistRepository.GetByIdWithVideosAsync(id);
+            if (playlist == null)
+            {
+                return null;
+            }
+
+            var playlistDto = _playlistMapper.Map(playlist);
+            var videoDtos = _videoMapper.Map(playlist.Videos.ToList());
+
+            return (playlistDto, videoDtos);
         }
 
         public async Task<ErrorOr<PlaylistDto>> CreateAsync(PlaylistCreateDto dto)
@@ -77,7 +92,7 @@ namespace Business.Services
             await _playlistRepository.CreateAsync(playlist);
             await _dbContext.SaveChangesAsync();
 
-            return _mapper.Map(playlist);
+            return _playlistMapper.Map(playlist);
         }
 
         public async Task<ErrorOr<PlaylistDto>> UpdateAsync(PlaylistUpdateDto dto)
@@ -104,7 +119,7 @@ namespace Business.Services
             await _playlistRepository.UpdateAsync(playlist);
             await _dbContext.SaveChangesAsync();
 
-            return _mapper.Map(playlist);
+            return _playlistMapper.Map(playlist);
         }
 
         public async Task<ErrorOr<Success>> DeleteAsync(int id)
@@ -121,10 +136,46 @@ namespace Business.Services
             return Result.Success;
         }
 
+        public async Task<ErrorOr<Success>> RemoveVideoAsync(int playlistId, int videoId)
+        {
+            var playlist = await _playlistRepository.GetByIdAsync(playlistId);
+            if (playlist is null)
+            {
+                return Error.NotFound("Playlist not found");
+            }
+
+            var video = await _videoRepository.GetByIdAsync(videoId);
+            if (video is null)
+            {
+                return Error.NotFound("Video not found");
+            }
+
+            await _playlistRepository.RemoveVideoFromPlaylistAsync(playlist, video);
+            return Result.Success;
+        }
+
+        public async Task<ErrorOr<Success>> AddVideoAsync(int playlistId, int videoId)
+        {
+            var playlist = await _playlistRepository.GetByIdAsync(playlistId);
+            if (playlist is null)
+            {
+                return Error.NotFound("Playlist not found");
+            }
+
+            var video = await _videoRepository.GetByIdAsync(videoId);
+            if (video is null)
+            {
+                return Error.NotFound("Video not found");
+            }
+
+            await _playlistRepository.AddVideoToPlaylistAsync(playlist, video);
+            return Result.Success;
+        }
+
         public async Task<List<PlaylistDto>> GetByFilterAsync(PlaylistFilterDto dto)
         {
             var playlists = await _playlistRepository.GetByFilterAsync(dto);
-            return _mapper.Map(playlists);
+            return _playlistMapper.Map(playlists);
         }
 
         public async Task<PagedResultDto<PlaylistDto>> GetByFilterPagedAsync(PlaylistFilterDto dto)
@@ -134,7 +185,7 @@ namespace Business.Services
 
             return new PagedResultDto<PlaylistDto>
             {
-                Items = _mapper.Map(playlists),
+                Items = _playlistMapper.Map(playlists),
                 TotalCount = totalCount,
                 PageNumber = dto.PageNumber,
                 PageSize = dto.PageSize

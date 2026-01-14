@@ -86,6 +86,25 @@ public class PlaylistController : ControllerBase
         return Ok(playlist);
     }
 
+    [HttpGet("{id:int}/videos", Name = "GetPlaylistWithVideos")]
+    public async Task<ActionResult<object>> GetWithVideos(int id)
+    {
+        var result = await _playlistService.GetByIdWithVideosAsync(id);
+
+        if (result is null)
+        {
+            return NotFound();
+        }
+
+        var (playlist, videos) = result.Value;
+
+        return Ok(new
+        {
+            Playlist = playlist,
+            Videos = videos
+        });
+    }
+
     [HttpPost(Name = "CreatePlaylist")]
     public async Task<ActionResult<PlaylistDto>> Create([FromBody] PlaylistCreateDto dto)
     {
@@ -97,6 +116,32 @@ public class PlaylistController : ControllerBase
         }
 
         return CreatedAtRoute("GetPlaylistById", new { id = result.Value.Id }, result.Value);
+    }
+
+    [HttpPost("{playlistId:int}/videos/{videoId:int}", Name = "AddVideoToPlaylist")]
+    public async Task<IActionResult> AddVideo(int playlistId, int videoId)
+    {
+        var result = await _playlistService.AddVideoAsync(playlistId, videoId);
+
+        if (result.IsError)
+        {
+            return result.ToActionResult();
+        }
+
+        return NoContent();
+    }
+
+    [HttpDelete("{playlistId:int}/videos/{videoId:int}", Name = "RemoveVideoFromPlaylist")]
+    public async Task<IActionResult> RemoveVideo(int playlistId, int videoId)
+    {
+        var result = await _playlistService.RemoveVideoAsync(playlistId, videoId);
+
+        if (result.IsError)
+        {
+            return result.ToActionResult();
+        }
+
+        return NoContent();
     }
 
     [HttpPut("{id:int}", Name = "UpdatePlaylist")]

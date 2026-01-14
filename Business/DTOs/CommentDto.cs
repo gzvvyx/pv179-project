@@ -1,5 +1,4 @@
-﻿
-using DAL.Models;
+﻿using DAL.Models;
 
 namespace Business.DTOs
 {
@@ -7,16 +6,12 @@ namespace Business.DTOs
     {
         public required int Id { get; set; }
         public required UserDto Author { get; set; }
-
         public required string Content { get; set; }
-
         public required int VideoId { get; set; }
-
-        public int ParentCommentId { get; set; }
-
+        public int? ParentCommentId { get; set; }
         public Comment? ParentComment { get; set; }
+        public List<CommentDto> Replies { get; set; } = new();
         public required DateTime CreatedAt { get; set; }
         public required DateTime UpdatedAt { get; set; }
-
     }
 }

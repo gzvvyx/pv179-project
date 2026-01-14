@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Security.Claims;
 using MVC.Extensions;
 using MVC.Models;
+using DAL.Services;
 
 namespace MVC.Controllers;
 
@@ -13,15 +14,21 @@ public class VideoDetailController : Controller
 {
     private readonly IVideoService _videoService;
     private readonly ICommentService _commentService;
+    private readonly IPlaylistService _playlistService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<VideoDetailController> _logger;
 
     public VideoDetailController(
         IVideoService videoService,
         ICommentService commentService,
+        IPlaylistService playlistService,
+        ICurrentUserService currentUserService,
         ILogger<VideoDetailController> logger)
     {
         _videoService = videoService;
         _commentService = commentService;
+        _playlistService = playlistService;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -40,13 +47,66 @@ public class VideoDetailController : Controller
             ReturnUrl = returnUrl
         };
 
+        var userId = _currentUserService.GetUserId();
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var allPlaylists = await _playlistService.GetAllAsync();
+            viewModel.UserPlaylists = allPlaylists.Where(p => p.Creator.Id == userId).ToList();
+
+            foreach (var playlist in viewModel.UserPlaylists)
+            {
+                var playlistWithVideos = await _playlistService.GetByIdWithVideosAsync(playlist.Id);
+                if (playlistWithVideos?.Item2.Any(v => v.Id == id) == true)
+                {
+                    viewModel.PlaylistsContainingVideo.Add(playlist.Id);
+                }
+            }
+        }
+
         return View(viewModel);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize]
-    public async Task<IActionResult> AddComment(int id, string content, string? returnUrl = null)
+    public async Task<IActionResult> AddToPlaylist(int videoId, int playlistId, string? returnUrl = null)
+    {
+        var userId = _currentUserService.GetUserId();
+
+        var playlist = await _playlistService.GetByIdAsync(playlistId);
+        if (playlist == null)
+        {
+            TempData["ErrorMessage"] = "Playlist not found.";
+            return RedirectToAction(nameof(Detail), new { id = videoId, returnUrl });
+        }
+
+        if (playlist.Creator.Id != userId)
+        {
+            TempData["ErrorMessage"] = "You can only add videos to your own playlists.";
+            return RedirectToAction(nameof(Detail), new { id = videoId, returnUrl });
+        }
+
+        var result = await _playlistService.AddVideoAsync(playlistId, videoId);
+        if (result.IsError)
+        {
+            TempData["ErrorMessage"] = "Failed to add video to playlist.";
+            _logger.LogError("Failed to add video {VideoId} to playlist {PlaylistId}: {Errors}",
+                videoId, playlistId, result.Errors);
+        }
+        else
+        {
+            TempData["SuccessMessage"] = $"Video added to '{playlist.Name}' successfully!";
+            _logger.LogInformation("Video {VideoId} added to playlist {PlaylistId} by user {UserId}",
+                videoId, playlistId, userId);
+        }
+
+        return RedirectToAction(nameof(Detail), new { id = videoId, returnUrl });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize]
+    public async Task<IActionResult> AddComment(int id, string content, int? parentCommentId = null, string? returnUrl = null)
     {
         if (string.IsNullOrWhiteSpace(content))
         {
@@ -64,7 +124,8 @@ public class VideoDetailController : Controller
         {
             VideoId = id,
             AuthorId = currentUserId,
-            Content = content
+            Content = content,
+            ParentCommentId = parentCommentId
         };
 
         var result = await _commentService.CreateAsync(commentDto);
@@ -77,6 +138,9 @@ public class VideoDetailController : Controller
         }
         else
         {
+            TempData["SuccessMessage"] = parentCommentId.HasValue 
+                ? "Reply posted successfully!" 
+                : "Comment posted successfully!";
             _logger.LogInformation("Comment created for video {VideoId} by user {UserId}", id, currentUserId);
         }
 
@@ -110,6 +174,7 @@ public class VideoDetailController : Controller
         }
         else
         {
+            TempData["SuccessMessage"] = "Comment deleted successfully!";
             _logger.LogInformation("Comment {CommentId} deleted by user {UserId}", commentId, currentUserId);
         }
 

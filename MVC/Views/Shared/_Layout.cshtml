@@ -96,6 +96,12 @@
                             </a>
                         </li>
                         <li>
+                            <a asp-area="" asp-controller="Playlist" asp-action="Index" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Playlists">
+                                <icon name="list" />
+                                <span class="is-drawer-close:hidden">My Playlists</span>
+                            </a>
+                        </li>
+                        <li>
                             <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post" class="w-full">
                                 <button type="submit" class="is-drawer-close:tooltip is-drawer-close:tooltip-right flex items-center gap-2" data-tip="Logout">
                                     <icon name="log-out" />
