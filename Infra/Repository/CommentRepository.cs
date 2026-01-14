@@ -35,6 +35,7 @@ namespace Infra.Repository
                 .AsNoTracking()
                 .Include(comment => comment.Author)
                 .Where(comment => comment.VideoId == videoId)
+                .OrderBy(comment => comment.CreatedAt)
                 .ToListAsync();
         }
 

@@ -26,7 +26,21 @@ namespace Infra.Repository
         {
             return _dbContext.Playlists
                 .Include(playlist => playlist.Creator)
+                .Include(playlist => playlist.Videos)
                 .FirstOrDefaultAsync(o => o.Id == id);
+        }
+
+        public Task<Playlist?> GetByIdWithVideosAsync(int id)
+        {
+            return _dbContext.Playlists
+                .AsNoTracking()
+                .Include(playlist => playlist.Creator)
+                .Include(playlist => playlist.Videos)
+                    .ThenInclude(video => video.Creator)
+                .Include(playlist => playlist.Videos)
+                    .ThenInclude(video => video.VideoCategories)
+                        .ThenInclude(vc => vc.Category)
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
 
         public async Task CreateAsync(Playlist playlist)
@@ -52,6 +66,24 @@ namespace Infra.Repository
         public async Task DeleteAsync(Playlist playlist)
         {
             _dbContext.Playlists.Remove(playlist);
+        }
+
+        public async Task RemoveVideoFromPlaylistAsync(Playlist playlist, Video video)
+        {
+            if (playlist.Videos.Contains(video))
+            {
+                playlist.Videos.Remove(video);
+                await _dbContext.SaveChangesAsync();
+            }
+        }
+
+        public async Task AddVideoToPlaylistAsync(Playlist playlist, Video video)
+        {
+            if (!playlist.Videos.Contains(video))
+            {
+                playlist.Videos.Add(video);
+                await _dbContext.SaveChangesAsync();
+            }
         }
 
         public async Task<List<Playlist>> GetByFilterAsync(PlaylistFilterDto dto)

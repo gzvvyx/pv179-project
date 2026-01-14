@@ -50,8 +50,26 @@ namespace Business.Services
 
         public async Task<List<CommentDto>> GetByVideoIdAsync(int videoId)
         {
-            var comments = await _commentRepository.GetByVideoIdAsync(videoId);
-            return _mapper.Map(comments);
+            var allComments = await _commentRepository.GetByVideoIdAsync(videoId);
+            
+            var commentDtos = _mapper.Map(allComments);
+            
+            var commentDict = commentDtos.ToDictionary(c => c.Id);
+            var rootComments = new List<CommentDto>();
+            
+            foreach (var comment in commentDtos)
+            {
+                if (comment.ParentCommentId == null)
+                {
+                    rootComments.Add(comment);
+                }
+                else if (commentDict.TryGetValue(comment.ParentCommentId.Value, out var parent))
+                {
+                    parent.Replies.Add(comment);
+                }
+            }
+            
+            return rootComments;
         }
 
         public async Task<ErrorOr<CommentDto>> CreateAsync(CommentCreateDto dto)
@@ -82,6 +100,7 @@ namespace Business.Services
                 AuthorId = dto.AuthorId,
                 Author = author,
                 Content = dto.Content!,
+                ParentCommentId = dto.ParentCommentId,
                 CreatedAt = default,
                 UpdatedAt = default
             };

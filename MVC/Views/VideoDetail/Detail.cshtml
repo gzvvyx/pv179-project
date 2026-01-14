@@ -13,20 +13,10 @@
 }
 
 <div class="container mx-auto px-4 py-8">
-    @if (showBackButton)
-    {
-        <a href="@returnUrl" class="btn btn-ghost btn-sm mb-4">
-            <icon name="arrow-left" />
-            Back to Search Results
-        </a>
-    }
-    else
-    {
-        <a asp-controller="Search" asp-action="Index" class="btn btn-ghost btn-sm mb-4">
-            <icon name="arrow-left" />
-            Back to Search
-        </a>
-    }
+    <button onclick="history.back()" class="btn btn-ghost btn-sm mb-4">
+        <icon name="arrow-left" />
+        Back
+    </button>
 
     @if (TempData["SuccessMessage"] != null)
     {
@@ -120,6 +110,18 @@
                         <p class="whitespace-pre-wrap">@Model.Video.Description</p>
                     </div>
 
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="divider my-2"></div>
+                        
+                        <div class="flex gap-2">
+                            <button onclick="openAddToPlaylistModal()" class="btn btn-primary btn-sm">
+                                <icon name="list" />
+                                Add to Playlist
+                            </button>
+                        </div>
+                    }
+
                     @if (isOwner)
                     {
                         <div class="divider my-2"></div>
@@ -156,3 +158,103 @@
         </div>
     </div>
 </div>
+
+<!-- Add to Playlist Modal -->
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <dialog id="addToPlaylistModal" class="modal">
+        <div class="modal-box max-w-md">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+                    <icon name="x" />
+                </button>
+            </form>
+            
+            <h3 class="font-bold text-xl mb-4">Add to Playlist</h3>
+            
+            @if (!Model.UserPlaylists.Any())
+            {
+                <div class="text-center py-8">
+                    <icon name="list" class="w-16 h-16 opacity-30 mx-auto mb-4" />
+                    <p class="text-base-content/70 mb-4">You don't have any playlists yet.</p>
+                    <a asp-controller="Playlist" asp-action="Index" class="btn btn-primary btn-sm">
+                        <icon name="plus" />
+                        Create a Playlist
+                    </a>
+                </div>
+            }
+            else
+            {
+                <p class="text-sm text-base-content/70 mb-4">Select a playlist to add this video to:</p>
+                
+                <div class="space-y-2 max-h-96 overflow-y-auto">
+                    @foreach (var playlist in Model.UserPlaylists)
+                    {
+                        var isInPlaylist = Model.PlaylistsContainingVideo.Contains(playlist.Id);
+                        
+                        <div class="card bg-base-200 hover:bg-base-300 transition-colors @(isInPlaylist ? "opacity-60" : "")">
+                            <div class="card-body p-4">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold">@playlist.Name</h4>
+                                        @if (!string.IsNullOrEmpty(playlist.Description))
+                                        {
+                                            <p class="text-xs text-base-content/70 line-clamp-2">@playlist.Description</p>
+                                        }
+                                    </div>
+                                    
+                                    @if (isInPlaylist)
+                                    {
+                                        <div class="badge badge-success gap-1">
+                                            <icon name="check" class="w-3 h-3" />
+                                            Added
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" asp-action="AddToPlaylist" asp-route-returnUrl="@Model.ReturnUrl">
+                                            <input type="hidden" name="videoId" value="@Model.Video.Id" />
+                                            <input type="hidden" name="playlistId" value="@playlist.Id" />
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <icon name="plus" />
+                                                Add
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                
+                <div class="mt-4 pt-4 border-t">
+                    <a asp-controller="Playlist" asp-action="Index" class="btn btn-ghost btn-sm w-full">
+                        <icon name="settings" />
+                        Manage Playlists
+                    </a>
+                </div>
+            }
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+}
+
+@section Scripts {
+    <script>
+        function openAddToPlaylistModal() {
+            document.getElementById('addToPlaylistModal')?.showModal();
+        }
+        
+        function toggleReplyForm(commentId) {
+            const form = document.getElementById(`reply-form-${commentId}`);
+            if (form) {
+                form.classList.toggle('hidden');
+                if (!form.classList.contains('hidden')) {
+                    form.querySelector('textarea')?.focus();
+                }
+            }
+        }
+    </script>
+}
