@@ -1,7 +1,6 @@
 ﻿using API.Extensions;
 using Business.DTOs;
 using Business.Services;
-using Infra.Repository;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -11,45 +10,42 @@ namespace API.Controllers;
 public class GiftCardController : ControllerBase
 {
     private readonly ILogger<GiftCardController> _logger;
-    private readonly IGiftCardService _GiftCardService;
+    private readonly IGiftCardService _giftCardService;
     private readonly IGiftCardCodeService _giftCardCodeService;
-    private readonly IGiftCardRepository _giftCardRepository;
 
     public GiftCardController(
         ILogger<GiftCardController> logger, 
-        IGiftCardService GiftCardService,
-        IGiftCardCodeService giftCardCodeService,
-        IGiftCardRepository giftCardRepository)
+        IGiftCardService giftCardService,
+        IGiftCardCodeService giftCardCodeService)
     {
         _logger = logger;
-        _GiftCardService = GiftCardService;
+        _giftCardService = giftCardService;
         _giftCardCodeService = giftCardCodeService;
-        _giftCardRepository = giftCardRepository;
     }
 
     [HttpGet(Name = "GetGiftCards")]
     public async Task<IEnumerable<GiftCardDto>> Get()
     {
-        return await _GiftCardService.GetAllAsync();
+        return await _giftCardService.GetAllAsync();
     }
 
     [HttpGet("{id:int}", Name = "GetGiftCardById")]
     public async Task<ActionResult<GiftCardDto>> GetById(int id)
     {
-        var GiftCard = await _GiftCardService.GetByIdAsync(id);
+        var giftCard = await _giftCardService.GetByIdAsync(id);
 
-        if (GiftCard is null)
+        if (giftCard is null)
         {
             return NotFound();
         }
 
-        return Ok(GiftCard);
+        return Ok(giftCard);
     }
 
     [HttpPost(Name = "CreateGiftCard")]
     public async Task<ActionResult<GiftCardDto>> Create([FromBody] GiftCardCreateDto dto)
     {
-        var result = await _GiftCardService.CreateAsync(dto);
+        var result = await _giftCardService.CreateAsync(dto);
 
         if (result.IsError)
         {
@@ -63,7 +59,7 @@ public class GiftCardController : ControllerBase
     public async Task<ActionResult<GiftCardDto>> Update(int id, [FromBody] GiftCardUpdateDto dto)
     {
         dto.Id = id;
-        var result = await _GiftCardService.UpdateAsync(dto);
+        var result = await _giftCardService.UpdateAsync(dto);
 
         return result.ToActionResult();
     }
@@ -71,7 +67,7 @@ public class GiftCardController : ControllerBase
     [HttpDelete("{id:int}", Name = "DeleteGiftCard")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _GiftCardService.DeleteAsync(id);
+        var result = await _giftCardService.DeleteAsync(id);
 
         return result.ToActionResult();
     }
@@ -79,14 +75,7 @@ public class GiftCardController : ControllerBase
     [HttpPost("{id:int}/codes")]
     public async Task<ActionResult<GiftCardCodeDto>> CreateCode(int id, [FromBody] GiftCardCodeCreateDto dto)
     {
-        var giftCardEntity = await _giftCardRepository.GetByIdAsync(id);
-        if (giftCardEntity == null)
-        {
-            return NotFound();
-        }
-
         dto.GiftCardId = id;
-        dto.GiftCard = giftCardEntity;
 
         var result = await _giftCardCodeService.CreateAsync(dto);
 

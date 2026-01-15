@@ -1,7 +1,6 @@
 using Business.DTOs;
 using Business.Services;
 using DAL.Authorization;
-using Infra.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVC.Areas.Admin.Models;
@@ -16,18 +15,15 @@ public class GiftCardController : Controller
 {
     private readonly IGiftCardService _giftCardService;
     private readonly IGiftCardCodeService _giftCardCodeService;
-    private readonly IGiftCardRepository _giftCardRepository;
     private readonly ILogger<GiftCardController> _logger;
 
     public GiftCardController(
         IGiftCardService giftCardService,
         IGiftCardCodeService giftCardCodeService,
-        IGiftCardRepository giftCardRepository,
         ILogger<GiftCardController> logger)
     {
         _giftCardService = giftCardService;
         _giftCardCodeService = giftCardCodeService;
-        _giftCardRepository = giftCardRepository;
         _logger = logger;
     }
 
@@ -170,18 +166,11 @@ public class GiftCardController : Controller
             return RedirectToAction(nameof(Edit), new { id = model.GiftCardId });
         }
 
-        var giftCardEntity = await _giftCardRepository.GetByIdAsync(model.GiftCardId);
-        if (giftCardEntity == null)
-        {
-            return NotFound();
-        }
-
         var codeCreateDto = new GiftCardCodeCreateDto
         {
             Code = model.Code,
             Used = model.Used,
-            GiftCardId = model.GiftCardId,
-            GiftCard = giftCardEntity
+            GiftCardId = model.GiftCardId
         };
 
         var result = await _giftCardCodeService.CreateAsync(codeCreateDto);
