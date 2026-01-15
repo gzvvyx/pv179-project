@@ -144,7 +144,7 @@ public class SubscriptionController : ControllerBase
             return BadRequest(new { error = "You cannot subscribe to yourself." });
         }
 
-        var paymentDto = new ProcessPaymentDto
+        var paymentDto = new PaymentProcessDto
         {
             OrdererId = currentUserId,
             CreatorId = request.CreatorId,
