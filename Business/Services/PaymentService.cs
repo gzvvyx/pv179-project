@@ -32,7 +32,7 @@ public class PaymentService : IPaymentService
         _dbContext = dbContext;
     }
 
-    public async Task<ErrorOr<PaymentResultDto>> ProcessSubscriptionPaymentAsync(ProcessPaymentDto dto)
+    public async Task<ErrorOr<PaymentResultDto>> ProcessSubscriptionPaymentAsync(PaymentProcessDto dto)
     {
         // Validate users exist
         var creator = await _userRepository.GetByIdAsync(dto.CreatorId);

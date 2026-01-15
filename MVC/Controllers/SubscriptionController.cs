@@ -93,7 +93,7 @@ public class SubscriptionController : Controller
             return View(model);
         }
 
-        var paymentDto = new ProcessPaymentDto
+        var paymentDto = new PaymentProcessDto
         {
             OrdererId = currentUserId,
             CreatorId = model.CreatorId,
