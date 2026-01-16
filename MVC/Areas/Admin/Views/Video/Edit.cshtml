@@ -19,7 +19,8 @@
     {
         <div class="alert alert-success mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>@TempData["SuccessMessage"]</span>
         </div>
@@ -29,7 +30,8 @@
     {
         <div class="alert alert-error mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>@TempData["ErrorMessage"]</span>
         </div>
@@ -39,7 +41,7 @@
         <div class="card-body">
             <form asp-action="Edit" asp-route-id="@Model.Video.Id" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
-                
+
                 <div class="grid grid-cols-1 gap-6">
                     <div class="form-control">
                         <label class="label">Video ID</label>
@@ -81,7 +83,8 @@
 
                     <div class="form-control">
                         <label class="label" asp-for="ThumbnailImage">Upload New Thumbnail Image</label>
-                        <input type="file" asp-for="ThumbnailImage" accept="image/*" class="file-input file-input-bordered w-full" />
+                        <input type="file" asp-for="ThumbnailImage" accept="image/*"
+                            class="file-input file-input-bordered w-full" />
                         <span asp-validation-for="ThumbnailImage" class="text-error text-sm"></span>
                         <label class="label">
                             <span class="label-text-alt">Accepted formats: JPG, JPEG, PNG, GIF, WEBP (max 5MB)</span>
@@ -97,13 +100,78 @@
                     }
 
                     <div class="form-control">
+                        <label class="label">Categories</label>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm bg-base-200 rounded-lg">
+                                <thead>
+                                    <tr>
+                                        <th class="w-16">Include</th>
+                                        <th class="w-16">Primary</th>
+                                        <th>Category</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.AvailableCategories.Any())
+                                    {
+                                        @for (var i = 0; i < Model.AvailableCategories.Count; i++)
+                                        {
+                                            var category = Model.AvailableCategories[i];
+                                            var isChecked = Model.SelectedCategoryIds.Contains(category.Id);
+                                            var isPrimary = Model.PrimaryCategoryId == category.Id;
+                                            <tr class="hover">
+                                                <td class="text-center">
+                                                    <input type="checkbox" name="SelectedCategoryIds" value="@category.Id"
+                                                        class="checkbox checkbox-primary checkbox-sm"
+                                                        id="cat-check-@category.Id"
+                                                        onchange="window.togglePrimaryRadio(@category.Id, this.checked)"
+                                                        @(isChecked ? "checked" : "") />
+                                                </td>
+                                                <td class="text-center">
+                                                    <input type="radio" name="PrimaryCategoryId" value="@category.Id"
+                                                        class="radio radio-primary radio-sm" id="cat-primary-@category.Id"
+                                                        @(isPrimary ? "checked" : "") @(isChecked ? "" : "disabled") />
+                                                </td>
+                                                <td>@category.Name</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="3" class="text-base-content/50 text-center">No categories available
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <label class="label">
+                            <span class="label-text-alt">Check categories to include, select one as primary</span>
+                        </label>
+                    </div>
+
+                    <script>
+                        window.togglePrimaryRadio = function (categoryId, isChecked) {
+                            var radio = document.getElementById('cat-primary-' + categoryId);
+                            if (radio) {
+                                radio.disabled = !isChecked;
+                                if (!isChecked && radio.checked) {
+                                    radio.checked = false;
+                                }
+                            }
+                        };
+                    </script>
+
+                    <div class="form-control">
                         <label class="label">Created At</label>
-                        <input type="text" value="@Model.Video.CreatedAt.ToLocalTime().ToString("g")" class="input input-bordered block" disabled />
+                        <input type="text" value="@Model.Video.CreatedAt.ToLocalTime().ToString("g")"
+                            class="input input-bordered block" disabled />
                     </div>
 
                     <div class="form-control">
                         <label class="label">Updated At</label>
-                        <input type="text" value="@Model.Video.UpdatedAt.ToLocalTime().ToString("g")" class="input input-bordered block" disabled />
+                        <input type="text" value="@Model.Video.UpdatedAt.ToLocalTime().ToString("g")"
+                            class="input input-bordered block" disabled />
                     </div>
                 </div>
 
@@ -120,4 +188,3 @@
         </div>
     </div>
 </div>
-
