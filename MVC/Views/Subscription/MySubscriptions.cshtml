@@ -1,0 +1,86 @@
+﻿@using DAL.Models.Enums
+@model List<SubscriptionViewModel>
+
+@{
+    ViewData["Title"] = "My Subscriptions";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">@ViewData["Title"]</h1>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>You don't have any active subscriptions.</span>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr class="text-center">
+                        <th>Id</th>
+                        <th>Creator</th>
+                        <th>Status</th>
+                        <th>Plan</th>
+                        <th>Subscribed Since</th>
+                        <th>Last Renewed At</th>
+                        <th>Expires/Renews At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sub in Model)
+                    {
+                        <tr class="text-center">
+                            <td>@sub.Id</td>
+                            <td>@sub.CreatorUserName</td>
+                            <td>
+                                @if (sub.Active)
+                                {
+                                    <span class="badge badge-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-error">Inactive</span>
+                                }
+                            </td>
+                            <td>@sub.Timeframe</td>
+                            <td>@sub.SubscribedAt.ToShortDateString()</td>
+                            <td>@sub.LastRenewedAt.ToShortDateString()</td>
+                            <td>
+                                <span class="@(sub.ExpiresAt < DateTime.Now ? "text-error" : "")">
+                                    @sub.ExpiresAt.ToString("g")
+                                </span>
+                            </td>
+                            <td>
+                                @if (sub.Active)
+                                {
+                                    <form asp-controller="Subscription" asp-action="Unsubscribe" asp-route-subId="@sub.Id" method="post"
+                                          onsubmit="return confirm('Are you sure you want to unsubscribe from @sub.CreatorUserName?');">
+                                        <button type="submit" class="btn btn-sm btn-outline btn-error">
+                                            <icon name="user-minus" size="18" class="mr-1" />
+                                            Unsubscribe
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-gray-500">Unsubscribed @sub.UpdatedAt.ToShortDateString()</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4">
+            <p class="text-sm text-gray-600">
+                Total subscriptions: <strong>@Model.Count</strong>
+            </p>
+        </div>
+    }
+</div>

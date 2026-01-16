@@ -165,6 +165,36 @@ public class SubscriptionController : ControllerBase
         return Ok(paymentResult);
     }
 
+    [HttpPost("{id:int}/unsubscribe", Name = "Unsubscribe")]
+    public async Task<ActionResult<SubscriptionDto>> Unsubscribe(int id)
+    {
+        var currentUserId = _currentUserService.GetUserId();
+        if (currentUserId is null)
+        {
+            return Unauthorized(new { error = "User not authenticated." });
+        }
+
+        var updateDto = new SubscriptionUpdateDto
+        {
+            Id = id,
+            Active = false
+        };
+
+        var result = await _subscriptionService.UpdateAsync(updateDto);
+
+        return result.Match(
+            _ => {
+                _logger.LogInformation("User {UserId} unsubscribed from {SubId}", currentUserId, id);
+                return NoContent();
+            },
+            errors => {
+                _logger.LogWarning("Unsubscribe failed for {SubId}: {Errors}",
+                    id, string.Join(", ", errors.Select(e => e.Description)));
+                return result.ToActionResult();
+            }
+        );
+    }
+
     [HttpPost("validate-gift-card", Name = "ValidateGiftCard")]
     public async Task<ActionResult<object>> ValidateGiftCard([FromBody] ValidateGiftCardRequestDto request)
     {

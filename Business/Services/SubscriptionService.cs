@@ -193,4 +193,16 @@ public class SubscriptionService : ISubscriptionService
 
         return await _subscriptionRepository.IsUserSubscribedAsync(orderer, creator);
     }
+
+    public async Task<ErrorOr<List<SubscriptionDto>>> GetBySubscriberIdAsync(string subscriberId)
+    {
+        var subscriber = await _userRepository.GetByIdAsync(subscriberId);
+        if (subscriber is null)
+        {
+            return Error.NotFound();
+        }
+        var subscriptions = await _subscriptionRepository.GetBySubscriberAsync(subscriber);
+
+        return _mapper.Map(subscriptions);
+    }
 }

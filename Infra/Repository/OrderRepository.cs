@@ -39,12 +39,12 @@ public class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.Id == id);
     }
 
-    public Task<List<Order>> GetByOrdererIdAsync(string ordererId)
+    public Task<List<Order>> GetByOrdererAsync(User orderer)
     {
         return _dbContext.Orders
             .Include(order => order.Creator)
             .Include(order => order.Orderer)
-            .Where(o => o.OrdererId == ordererId)
+            .Where(o => o.OrdererId == orderer.Id)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
     }
