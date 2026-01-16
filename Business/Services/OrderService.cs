@@ -55,9 +55,16 @@ public class OrderService : IOrderService
         return order == null ? null : _mapper.Map(order);
     }
 
-    public async Task<List<OrderDto>> GetByOrdererIdAsync(string ordererId)
+    public async Task<ErrorOr<List<OrderDto>>> GetByOrdererIdAsync(string ordererId)
     {
-        var orders = await _orderRepository.GetByOrdererIdAsync(ordererId);
+        var orderer = await _userRepository.GetByIdAsync(ordererId);
+        if (orderer is null)
+        {
+            return Error.NotFound();
+        }
+
+        var orders = await _orderRepository.GetByOrdererAsync(orderer);
+
         return _mapper.Map(orders);
     }
 

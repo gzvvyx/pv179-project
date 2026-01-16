@@ -111,14 +111,29 @@ public class SubscriptionRepository : ISubscriptionRepository
 
     public async Task<bool> IsUserSubscribedAsync(User orderer, User creator)
     {
+        var now = DateTime.UtcNow;
+
         var cacheKey = $"{SubscriptionCheckCacheKeyPrefix}{orderer.Id}_{creator.Id}";
         var result = await _cacheService.GetOrSetAsync(cacheKey, async () =>
         {
             var isSubscribed = await _dbContext.Subscriptions
                 .AsNoTracking()
-                .AnyAsync(s => s.OrdererId == orderer.Id && s.CreatorId == creator.Id);
+                .AnyAsync(s => s.OrdererId == orderer.Id
+                            && s.CreatorId == creator.Id
+                            && s.ExpiresAt > now);
+
             return new { IsSubscribed = isSubscribed };
         });
         return result.IsSubscribed;
+    }
+
+    public Task<List<Subscription>> GetBySubscriberAsync(User subscriber)
+    {
+        return _dbContext.Subscriptions
+            .AsNoTracking()
+            .Where(s => s.OrdererId == subscriber.Id)
+            .Include(s => s.Creator)
+            .Include(s => s.Orderer)
+            .ToListAsync();
     }
 }

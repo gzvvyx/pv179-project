@@ -12,4 +12,5 @@ public interface ISubscriptionService
     Task<ErrorOr<SubscriptionDto>> UpdateAsync(SubscriptionUpdateDto subscriptionDto);
     Task<ErrorOr<Success>> DeleteAsync(int id);
     Task<ErrorOr<bool>> IsUserSubscribedAsync(string ordererId, string creatorId);
+    Task<ErrorOr<List<SubscriptionDto>>> GetBySubscriberIdAsync(string subscriberId);
 }

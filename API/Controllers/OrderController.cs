@@ -40,7 +40,12 @@ public class OrderController : ControllerBase
             return Enumerable.Empty<OrderDto>();
         }
 
-        return await _orderService.GetByOrdererIdAsync(userId);
+        var orders = await _orderService.GetByOrdererIdAsync(userId);
+        if (orders.IsError)
+        {
+            return Enumerable.Empty<OrderDto>();
+        }
+        return orders.Value;
     }
 
     [HttpGet("with-users", Name = "GetOrdersWithUsers")]

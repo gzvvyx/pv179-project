@@ -84,6 +84,18 @@
                             </a>
                         </li>
                         <li>
+                            <a asp-area="" asp-controller="Playlist" asp-action="Index" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Playlists">
+                                <icon name="list" />
+                                <span class="is-drawer-close:hidden">My Playlists</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-area="" asp-controller="Subscription" asp-action="MySubscriptions" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Subscriptions">
+                                <icon name="notebook-tabs" />
+                                <span class="is-drawer-close:hidden">My Subscriptions</span>
+                            </a>
+                        </li>
+                        <li>
                             <a asp-area="" asp-controller="Order" asp-action="MyOrders" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Orders">
                                 <icon name="shopping-bag" />
                                 <span class="is-drawer-close:hidden">My Orders</span>
@@ -93,12 +105,6 @@
                             <a asp-area="" asp-controller="User" asp-action="Index" asp-route-id="@UserManager.GetUserId(User)" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Profile">
                                 <icon name="user" />
                                 <span class="is-drawer-close:hidden">My Profile</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a asp-area="" asp-controller="Playlist" asp-action="Index" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Playlists">
-                                <icon name="list" />
-                                <span class="is-drawer-close:hidden">My Playlists</span>
                             </a>
                         </li>
                         <li>

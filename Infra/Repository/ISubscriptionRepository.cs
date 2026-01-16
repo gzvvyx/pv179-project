@@ -11,4 +11,5 @@ public interface ISubscriptionRepository
     Task UpdateAsync(Subscription subscription);
     Task DeleteAsync(Subscription subscription);
     Task<bool> IsUserSubscribedAsync(User orderer, User creator);
+    Task<List<Subscription>> GetBySubscriberAsync(User subscriber);
 }
