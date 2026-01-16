@@ -67,6 +67,39 @@ public class VideoRepository : IVideoRepository
             .AsNoTracking()
             .AsQueryable();
 
+        query = ApplyFilters(query, dto);
+
+        query = dto.SortBy?.ToLower() switch
+        {
+            "title" => dto.SortDescending
+                ? query.OrderByDescending(v => v.Title)
+                : query.OrderBy(v => v.Title),
+            "updatedat" => dto.SortDescending
+                ? query.OrderByDescending(v => v.UpdatedAt)
+                : query.OrderBy(v => v.UpdatedAt),
+            _ => dto.SortDescending
+                ? query.OrderByDescending(v => v.CreatedAt)
+                : query.OrderBy(v => v.CreatedAt)
+        };
+
+        query = query
+            .Skip((dto.PageNumber - 1) * dto.PageSize)
+            .Take(dto.PageSize);
+
+        return await query.ToListAsync();
+    }
+
+    public async Task<int> GetFilteredCountAsync(VideoFilterDto dto)
+    {
+        var query = _dbContext.Videos.AsQueryable();
+
+        query = ApplyFilters(query, dto);
+
+        return await query.CountAsync();
+    }
+
+    private IQueryable<Video> ApplyFilters(IQueryable<Video> query, VideoFilterDto dto)
+    {
         if (!string.IsNullOrEmpty(dto.Title) || !string.IsNullOrEmpty(dto.Description))
         {
             var searchTerm = dto.Title ?? dto.Description;
@@ -105,69 +138,7 @@ public class VideoRepository : IVideoRepository
             query = query.Where(v => v.CreatedAt <= dto.ToDate.Value);
         }
 
-        query = dto.SortBy?.ToLower() switch
-        {
-            "title" => dto.SortDescending
-                ? query.OrderByDescending(v => v.Title)
-                : query.OrderBy(v => v.Title),
-            "updatedat" => dto.SortDescending
-                ? query.OrderByDescending(v => v.UpdatedAt)
-                : query.OrderBy(v => v.UpdatedAt),
-            _ => dto.SortDescending
-                ? query.OrderByDescending(v => v.CreatedAt)
-                : query.OrderBy(v => v.CreatedAt)
-        };
-
-        query = query
-            .Skip((dto.PageNumber - 1) * dto.PageSize)
-            .Take(dto.PageSize);
-
-        return await query.ToListAsync();
-    }
-
-    public async Task<int> GetFilteredCountAsync(VideoFilterDto dto)
-    {
-        var query = _dbContext.Videos.AsQueryable();
-
-        if (!string.IsNullOrEmpty(dto.Title) || !string.IsNullOrEmpty(dto.Description))
-        {
-            var searchTerm = dto.Title ?? dto.Description;
-            query = query.Where(video =>
-                EF.Functions.ILike(video.Title, $"%{searchTerm}%") ||
-                EF.Functions.ILike(video.Description, $"%{searchTerm}%")
-            );
-        }
-
-        if (!string.IsNullOrEmpty(dto.CreatorId))
-        {
-            query = query.Where(video => video.CreatorId == dto.CreatorId);
-        }
-
-        // AND logic: video must have ALL selected categories
-        if (dto.CategoryIds != null && dto.CategoryIds.Any())
-        {
-            foreach (var categoryId in dto.CategoryIds)
-            {
-                var catId = categoryId; // Capture variable for closure
-                query = query.Where(video => video.VideoCategories.Any(vc => vc.CategoryId == catId));
-            }
-        }
-        else if (dto.CategoryId.HasValue)
-        {
-            query = query.Where(video => video.VideoCategories.Any(vc => vc.CategoryId == dto.CategoryId.Value));
-        }
-
-        if (dto.FromDate.HasValue)
-        {
-            query = query.Where(v => v.CreatedAt >= dto.FromDate.Value);
-        }
-
-        if (dto.ToDate.HasValue)
-        {
-            query = query.Where(v => v.CreatedAt <= dto.ToDate.Value);
-        }
-
-        return await query.CountAsync();
+        return query;
     }
 }
 

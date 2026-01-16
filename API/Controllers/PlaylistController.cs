@@ -1,4 +1,6 @@
 ﻿using API.Extensions;
+using API.DTOs;
+using API.Mappers;
 using Business.DTOs;
 using Business.Services;
 using Infra.DTOs;
@@ -12,6 +14,7 @@ public class PlaylistController : ControllerBase
 {
     private readonly ILogger<PlaylistController> _logger;
     private readonly IPlaylistService _playlistService;
+    private readonly PlaylistRequestMapper _mapper = new();
 
     public PlaylistController(ILogger<PlaylistController> logger, IPlaylistService playlistService)
     {
@@ -20,55 +23,16 @@ public class PlaylistController : ControllerBase
     }
 
     [HttpGet(Name = "GetPlaylists")]
-    public async Task<IEnumerable<PlaylistDto>> Get(
-        [FromQuery] string? name,
-        [FromQuery] string? description,
-        [FromQuery] string? creatorId
-    )
+    public async Task<IEnumerable<PlaylistDto>> Get([FromQuery] GetPlaylistsRequestDto request)
     {
-        var filter = new PlaylistFilterDto
-        {
-            Name = name,
-            Description = description,
-            CreatorId = creatorId
-        };
-
+        var filter = _mapper.ToFilterDto(request);
         return await _playlistService.GetByFilterAsync(filter);
     }
 
     [HttpGet("paged", Name = "GetPlaylistsPaged")]
-    public async Task<ActionResult<PagedResultDto<PlaylistDto>>> GetPaged(
-        [FromQuery] string? name,
-        [FromQuery] string? description,
-        [FromQuery] string? creatorId,
-        [FromQuery] string? fromDate,
-        [FromQuery] string? toDate,
-        [FromQuery] string? sortBy = "CreatedAt",
-        [FromQuery] bool sortDescending = true,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 12
-    )
+    public async Task<ActionResult<PagedResultDto<PlaylistDto>>> GetPaged([FromQuery] GetPlaylistsPagedRequestDto request)
     {
-        var filter = new PlaylistFilterDto
-        {
-            Name = name,
-            Description = description,
-            CreatorId = creatorId,
-            SortBy = sortBy,
-            SortDescending = sortDescending,
-            PageNumber = pageNumber,
-            PageSize = pageSize
-        };
-
-        if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var parsedFromDate))
-        {
-            filter.FromDate = parsedFromDate;
-        }
-        if (!string.IsNullOrEmpty(toDate) && DateTime.TryParse(toDate, out var parsedToDate))
-        {
-            filter.ToDate = parsedToDate;
-        }
-
+        var filter = _mapper.ToFilterDto(request);
         var result = await _playlistService.GetByFilterPagedAsync(filter);
         return Ok(result);
     }

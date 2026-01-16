@@ -1,5 +1,6 @@
 ﻿using API.DTOs;
 using API.Extensions;
+using API.Mappers;
 using Business.DTOs;
 using Business.Services;
 using DAL.Services;
@@ -17,6 +18,7 @@ public class SubscriptionController : ControllerBase
     private readonly IPaymentService _paymentService;
     private readonly IUserService _userService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly SubscriptionRequestMapper _mapper = new();
 
     public SubscriptionController(
         ILogger<SubscriptionController> logger, 
@@ -144,14 +146,7 @@ public class SubscriptionController : ControllerBase
             return BadRequest(new { error = "You cannot subscribe to yourself." });
         }
 
-        var paymentDto = new PaymentProcessDto
-        {
-            OrdererId = currentUserId,
-            CreatorId = request.CreatorId,
-            Timeframe = request.Timeframe,
-            GiftCardCode = request.GiftCardCode
-        };
-
+        var paymentDto = _mapper.ToPaymentProcessDto(request, currentUserId);
         var result = await _paymentService.ProcessSubscriptionPaymentAsync(paymentDto);
 
         if (result.IsError)
