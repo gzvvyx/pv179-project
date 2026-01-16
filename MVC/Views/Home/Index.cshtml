@@ -1,7 +1,56 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
-}
+﻿<div class="relative min-h-screen bg-base-100 py-12 px-4 overflow-hidden">
+    <div class="max-w-6xl mx-auto flex flex-col items-center">
+        <div class="text-center space-y-6 mb-20">
+            <h1 class="text-6xl md:text-8xl font-black tracking-tighter italic">
+                C<span class="text-primary">O</span>NTENT
+                <span class="block text-3xl md:text-4xl not-italic font-light tracking-normal opacity-70">
+                    Redefined for Creators.
+                </span>
+            </h1>
+            <div class="h-1 w-24 bg-primary mx-auto"></div>
+        </div>
 
-<div>
-    <p class="text-2xl">Protected Home content</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+
+            <div class="card bg-base-200 hover:bg-base-300 transition-all duration-300 group">
+                <div class="card-body">
+                    <div class="text-4xl font-black opacity-10 group-hover:opacity-100 transition-opacity text-primary">01</div>
+                    <h2 class="card-title text-2xl">Search</h2>
+                    <p class="text-sm opacity-60">Find the masters of their craft using search.</p>
+                </div>
+            </div>
+
+            <div class="card bg-primary text-primary-content shadow-2xl scale-105 z-10">
+                <div class="card-body">
+                    <div class="text-4xl font-black opacity-20 text-white">02</div>
+                    <h2 class="card-title text-2xl font-bold">Subscribe</h2>
+                    <p class="text-sm">Directly support creators. No middleman, just pure content access.</p>
+                </div>
+            </div>
+
+            <div class="card bg-base-200 hover:bg-base-300 transition-all duration-300 group">
+                <div class="card-body">
+                    <div class="text-4xl font-black opacity-10 group-hover:opacity-100 transition-opacity text-primary">03</div>
+                    <h2 class="card-title text-2xl">Watch</h2>
+                    <p class="text-sm opacity-60">High-bitrate video streaming available on any device, anywhere. Presumably, at least.</p>
+                </div>
+            </div>
+
+            <div class="card bg-base-200 hover:bg-base-300 transition-all duration-300 group">
+                <div class="card-body">
+                    <div class="text-4xl font-black opacity-10 group-hover:opacity-100 transition-opacity text-primary">04</div>
+                    <h2 class="card-title text-2xl">Manage</h2>
+                    <p class="text-sm opacity-60">Total control. Unsubscribe with a single click whenever you want.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-20">
+            <a asp-controller="Search" asp-action="Index" class="btn btn-primary btn-lg px-12 group">
+                Search
+                <icon name="arrow-right" class="group-hover:translate-x-1 transition-transform" />
+            </a>
+        </div>
+    </div>
 </div>
