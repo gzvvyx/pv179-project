@@ -21,5 +21,8 @@ public class VideoCreateDto
     [Required]
     [Url]
     public required string ThumbnailUrl { get; set; }
+
+    public List<int> CategoryIds { get; set; } = new();
+    public int? PrimaryCategoryId { get; set; }
 }
 

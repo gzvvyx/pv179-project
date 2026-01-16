@@ -17,14 +17,12 @@ public class VideoUpdateDtoValidator : AbstractValidator<VideoUpdateDto>
             .When(x => !string.IsNullOrWhiteSpace(x.Title));
 
         RuleFor(x => x.Url)
-            .Must(uri => Uri.TryCreate(uri, UriKind.Absolute, out _))
-            .WithMessage("Url must be a valid URL.")
-            .When(x => !string.IsNullOrWhiteSpace(x.Url));
+            .NotEmpty()
+            .When(x => x.Url != null);
 
         RuleFor(x => x.ThumbnailUrl)
-            .Must(uri => Uri.TryCreate(uri, UriKind.Absolute, out _))
-            .WithMessage("ThumbnailUrl must be a valid URL.")
-            .When(x => !string.IsNullOrWhiteSpace(x.ThumbnailUrl));
+            .NotEmpty()
+            .When(x => x.ThumbnailUrl != null);
     }
 }
 
