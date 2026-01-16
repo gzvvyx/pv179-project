@@ -15,6 +15,7 @@ public class VideoDetailController : Controller
     private readonly IVideoService _videoService;
     private readonly ICommentService _commentService;
     private readonly IPlaylistService _playlistService;
+    private readonly ISubscriptionService _subscriptionService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<VideoDetailController> _logger;
 
@@ -22,12 +23,14 @@ public class VideoDetailController : Controller
         IVideoService videoService,
         ICommentService commentService,
         IPlaylistService playlistService,
+        ISubscriptionService subscriptionService,
         ICurrentUserService currentUserService,
         ILogger<VideoDetailController> logger)
     {
         _videoService = videoService;
         _commentService = commentService;
         _playlistService = playlistService;
+        _subscriptionService = subscriptionService;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -38,6 +41,29 @@ public class VideoDetailController : Controller
         if (video == null)
             return NotFound();
 
+        var userId = _currentUserService.GetUserId();
+
+        if (video.Creator.PricePerMonth.HasValue && video.Creator.PricePerMonth > 0)
+        {
+            bool isCreator = userId == video.Creator.Id;
+            bool isSubscribed = false;
+
+            if (userId != null && !isCreator)
+            {
+                var subscriptionResult = await _subscriptionService.IsUserSubscribedAsync(userId, video.Creator.Id);
+                if (!subscriptionResult.IsError)
+                {
+                    isSubscribed = subscriptionResult.Value;
+                }
+            }
+
+            if (!isCreator && !isSubscribed)
+            {
+                TempData["ErrorMessage"] = "You need to subscribe to watch this video.";
+                return RedirectToAction("Index", "User", new { id = video.Creator.Id });
+            }
+        }
+
         var comments = await _commentService.GetByVideoIdAsync(id);
         
         var viewModel = new VideoDetailViewModel
@@ -47,7 +73,6 @@ public class VideoDetailController : Controller
             ReturnUrl = returnUrl
         };
 
-        var userId = _currentUserService.GetUserId();
         if (!string.IsNullOrEmpty(userId))
         {
             var allPlaylists = await _playlistService.GetAllAsync();
