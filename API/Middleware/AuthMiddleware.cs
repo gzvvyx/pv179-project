@@ -1,13 +1,14 @@
-﻿using System.Threading.Tasks;
+﻿using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
 namespace API.Middleware
 {
     public class AuthMiddleware
     {
-
         private readonly RequestDelegate _next;
         private const string ApiKeyHeaderName = "X-API-KEY";
+        private const string ImpersonateUserIdHeaderName = "X-Impersonate-User-Id";
         private const string ValidApiKey = "my-secret-key";
 
         public AuthMiddleware(RequestDelegate next)
@@ -31,6 +32,17 @@ namespace API.Middleware
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsync("Invalid API Key.");
                 return;
+            }
+
+            if (context.Request.Headers.TryGetValue(ImpersonateUserIdHeaderName, out var impersonateUserId) 
+                && !string.IsNullOrWhiteSpace(impersonateUserId))
+            {
+                var claims = new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, impersonateUserId!)
+                };
+                var identity = new ClaimsIdentity(claims, "ApiKeyAuthentication");
+                context.User = new ClaimsPrincipal(identity);
             }
 
             await _next(context);

@@ -43,25 +43,22 @@ public class VideoDetailController : Controller
 
         var userId = _currentUserService.GetUserId();
 
-        if (video.Creator.PricePerMonth.HasValue && video.Creator.PricePerMonth > 0)
+        bool isCreator = userId == video.Creator.Id;
+        bool isSubscribed = false;
+
+        if (userId != null && !isCreator)
         {
-            bool isCreator = userId == video.Creator.Id;
-            bool isSubscribed = false;
-
-            if (userId != null && !isCreator)
+            var subscriptionResult = await _subscriptionService.IsUserSubscribedAsync(userId, video.Creator.Id);
+            if (!subscriptionResult.IsError)
             {
-                var subscriptionResult = await _subscriptionService.IsUserSubscribedAsync(userId, video.Creator.Id);
-                if (!subscriptionResult.IsError)
-                {
-                    isSubscribed = subscriptionResult.Value;
-                }
+                isSubscribed = subscriptionResult.Value;
             }
+        }
 
-            if (!isCreator && !isSubscribed)
-            {
-                TempData["ErrorMessage"] = "You need to subscribe to watch this video.";
-                return RedirectToAction("Index", "User", new { id = video.Creator.Id });
-            }
+        if (!isCreator && !isSubscribed)
+        {
+            TempData["ErrorMessage"] = "You need to subscribe to watch this video.";
+            return RedirectToAction("Index", "User", new { id = video.Creator.Id });
         }
 
         var comments = await _commentService.GetByVideoIdAsync(id);

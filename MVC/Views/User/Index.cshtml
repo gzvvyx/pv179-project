@@ -4,13 +4,8 @@
     bool isLocked = !Model.IsCurrentUser && !Model.IsSubscribed;
 }
 
-<div class="card bg-base-100 shadow-xl mb-8 border border-base-200">
+<div class="card bg-base-100 shadow-xl mb-8 border border-base-200 mt-4">
     <div class="card-body flex flex-row items-center gap-6">
-        <div class="avatar placeholder">
-            <div class="bg-primary text-primary-content rounded-full w-20 h-20 text-center flex items-center justify-center">
-                <span class="text-3xl uppercase font-bold">@Model.UserName[0]</span>
-            </div>
-        </div>
         <div class="flex-1">
             <h2 class="card-title text-3xl">@Model.UserName</h2>
             <p class="opacity-60">@Model.Email</p>
@@ -42,14 +37,11 @@
     {
         <div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-base-100/20 backdrop-blur-md rounded-box border border-base-300">
             <div class="bg-base-100 p-8 rounded-2xl shadow-2xl text-center max-w-sm border border-primary/10">
-                <div class="bg-primary/10 text-primary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="bi bi-lock-fill text-3xl"></i>
-                </div>
                 <h3 class="text-2xl font-bold mb-2">Exclusive Content</h3>
                 <p class="opacity-70 mb-6">Subscribe to see @Model.UserName's full library of videos and playlists.</p>
                 <a asp-controller="Subscription" asp-action="Subscribe" asp-route-creatorId="@Model.Id"
                    class="btn btn-primary btn-block rounded-full">
-                    Subscribe to Unlock for <span>@Model.PricePerMonth?.ToString("F2")$</span>
+                    Subscribe to Unlock @(Model.PricePerMonth.HasValue ? $"for {Model.PricePerMonth.Value.ToString("F2")}$" : "for free")
                 </a>
             </div>
         </div>

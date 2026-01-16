@@ -41,11 +41,6 @@ namespace Infra.Repository
 
         public async Task CreateAsync(Comment comment)
         {
-            if (comment.Author is not null)
-            {
-                _dbContext.Attach(comment.Author);
-            }
-
             await _dbContext.Comments.AddAsync(comment);
         }
 

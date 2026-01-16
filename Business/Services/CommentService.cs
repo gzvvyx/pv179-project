@@ -96,9 +96,7 @@ namespace Business.Services
             {
                 Id = default,
                 VideoId = dto.VideoId,
-                Video = video,
                 AuthorId = dto.AuthorId,
-                Author = author,
                 Content = dto.Content!,
                 ParentCommentId = dto.ParentCommentId,
                 CreatedAt = default,

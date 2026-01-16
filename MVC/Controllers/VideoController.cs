@@ -61,7 +61,7 @@ public class VideoController : Controller
 
         try
         {
-            string videoUrl = null;
+            string? videoUrl = null;
             if (model.VideoFile != null)
             {
                 using var videoStream = model.VideoFile.OpenReadStream();
@@ -79,10 +79,10 @@ public class VideoController : Controller
 
             var createDto = new VideoCreateDto
             {
-                CreatorId = userId,
+                CreatorId = userId!,
                 Title = model.Title,
-                Description = model.Description,
-                Url = videoUrl,
+                Description = model.Description!,
+                Url = videoUrl!,
                 ThumbnailUrl = thumbnailUrl,
                 CategoryIds = model.SelectedCategoryIds,
                 PrimaryCategoryId = model.PrimaryCategoryId
@@ -185,7 +185,7 @@ public class VideoController : Controller
 
         try
         {
-            string videoUrl = null;
+            string? videoUrl = null;
             if (model.VideoFile != null)
             {
                 using var videoStream = model.VideoFile.OpenReadStream();
@@ -193,7 +193,7 @@ public class VideoController : Controller
                 videoUrl = $"/uploads/{relativePath}";
             }
 
-            string thumbnailUrl = null;
+            string? thumbnailUrl = null;
             if (model.ThumbnailFile != null)
             {
                 using var thumbnailStream = model.ThumbnailFile.OpenReadStream();

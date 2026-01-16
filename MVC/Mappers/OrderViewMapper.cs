@@ -10,10 +10,14 @@ public partial class OrderViewMapper
     public partial List<OrderViewModel> MapToViewModelList(List<OrderDto> orders);
     
     [MapProperty(nameof(OrderDto.Orderer.UserName), nameof(OrderViewModel.OrdererUserName))]
+    [MapProperty(nameof(OrderDto.Creator.Id), nameof(OrderViewModel.CreatorId))]
     [MapProperty(nameof(OrderDto.Creator.UserName), nameof(OrderViewModel.CreatorUserName))]
+    [MapperIgnoreSource(nameof(OrderDto.GiftCardCode))]
+    [MapperIgnoreSource(nameof(OrderDto.UpdatedAt))]
     public partial OrderViewModel MapToViewModel(OrderDto order);
     
     [MapProperty(nameof(OrderDto.Orderer.UserName), nameof(OrderDetailsViewModel.OrdererUserName))]
     [MapProperty(nameof(OrderDto.Creator.UserName), nameof(OrderDetailsViewModel.CreatorUserName))]
+    [MapperIgnoreSource(nameof(OrderDto.GiftCardCode))]
     public partial OrderDetailsViewModel MapToDetailsViewModel(OrderDto order);
 }

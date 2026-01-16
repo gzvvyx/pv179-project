@@ -120,7 +120,11 @@ public class VideoRepository : IVideoRepository
             );
         }
 
-        if (!string.IsNullOrEmpty(dto.CreatorId))
+        if (dto.CreatorIds != null && dto.CreatorIds.Any())
+        {
+            query = query.Where(video => dto.CreatorIds.Contains(video.CreatorId));
+        }
+        else if (!string.IsNullOrEmpty(dto.CreatorId))
         {
             query = query.Where(video => video.CreatorId == dto.CreatorId);
         }

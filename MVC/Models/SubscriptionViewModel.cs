@@ -6,6 +6,7 @@ public class SubscriptionViewModel
 {
     public required int Id { get; set; }
     public required string OrdererUserName { get; set; }
+    public required string CreatorId { get; set; }
     public required string CreatorUserName { get; set; }
     public required bool Active { get; set; }
     public required SubscriptionTimeframe Timeframe { get; set; }

@@ -25,11 +25,9 @@ public class Comment : BaseEntity
     [InverseProperty(nameof(ParentComment))]
     public ICollection<Comment> Replies { get; set; } = new List<Comment>();
 
-    [Required]
     [InverseProperty(nameof(User.Comments))]
-    public required User Author { get; set; }
+    public User? Author { get; set; }
 
-    [Required]
     [InverseProperty(nameof(Video.Comments))]
-    public required Video Video { get; set; }
+    public Video? Video { get; set; }
 }

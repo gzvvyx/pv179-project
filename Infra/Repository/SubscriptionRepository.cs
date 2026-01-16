@@ -120,6 +120,7 @@ public class SubscriptionRepository : ISubscriptionRepository
                 .AsNoTracking()
                 .AnyAsync(s => s.OrdererId == orderer.Id
                             && s.CreatorId == creator.Id
+                            && s.Active
                             && s.ExpiresAt > now);
 
             return new { IsSubscribed = isSubscribed };
