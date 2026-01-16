@@ -29,12 +29,11 @@ builder.Host.UseSerilog();
 
 builder.Services.AddPv179Core(builder.Configuration);
 
-var mvcBuilder = builder.Services.AddControllersWithViews()
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<OrderUpdateDtoValidator>();
-        fv.ImplicitlyValidateChildProperties = true;
-    });
+builder.Services.AddValidatorsFromAssemblyContaining<OrderUpdateDtoValidator>();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+
+var mvcBuilder = builder.Services.AddControllersWithViews();
 
 var razorPagesBuilder = builder.Services.AddRazorPages();
 if (builder.Environment.IsDevelopment())

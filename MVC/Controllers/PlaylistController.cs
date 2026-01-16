@@ -160,7 +160,7 @@ public class PlaylistController : Controller
         {
             Name = name.Trim(),
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
-            CreatorId = userId
+            CreatorId = userId!
         };
 
         var result = await _playlistService.CreateAsync(createDto);

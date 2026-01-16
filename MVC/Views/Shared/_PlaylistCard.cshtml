@@ -14,7 +14,7 @@
         <div class="card-actions justify-between items-center mt-2">
             <div class="text-xs opacity-60">
                 <icon name="user" class="w-3 h-3 inline" />
-                @Model.Creator.UserName
+                <a asp-controller="User" asp-action="Index" asp-route-id="@Model.Creator.Id" class="link link-hover">@Model.Creator.UserName</a>
             </div>
             <a asp-controller="Playlist" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-primary btn-sm">
                 <icon name="external-link" />

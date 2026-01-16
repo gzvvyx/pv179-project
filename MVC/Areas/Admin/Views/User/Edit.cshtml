@@ -82,7 +82,7 @@
                         @if (!ViewData.ModelState.IsValid && ViewData.ModelState[""] != null)
                         {
                             <div class="text-error text-sm mt-2">
-                                @foreach (var error in ViewData.ModelState[""].Errors)
+                            @foreach (var error in ViewData.ModelState[""]?.Errors ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.ModelBinding.ModelError>())
                                 {
                                     <div>@error.ErrorMessage</div>
                                 }

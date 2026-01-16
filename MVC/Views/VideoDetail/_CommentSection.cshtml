@@ -24,13 +24,10 @@
                 <div class="form-control">
                     <textarea 
                         name="content" 
-                        class="textarea textarea-bordered h-20 text-sm" 
+                        class="textarea textarea-bordered h-20 text-sm w-full mb-2" 
                         placeholder="Add a comment..."
                         maxlength="500"
                         required></textarea>
-                    <label class="label">
-                        <span class="label-text-alt">Max 500 characters</span>
-                    </label>
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm w-full">
                     <icon name="send" class="w-4 h-4" />
@@ -54,7 +51,7 @@
             {
                 @foreach (var comment in topLevelComments)
                 {
-                    <partial name="_CommentItem" model="@(new Tuple<CommentDto, int, string, string, int>(comment, 0, currentUserId, returnUrl, videoId))" />
+                    <partial name="_CommentItem" model="@(new Tuple<CommentDto, int, string, string, int>(comment, 0, currentUserId ?? "", returnUrl, videoId))" />
                 }
             }
             else

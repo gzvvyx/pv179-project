@@ -36,7 +36,7 @@
                     {
                         <tr class="text-center">
                             <td>@sub.Id</td>
-                            <td>@sub.CreatorUserName</td>
+                            <td><a asp-controller="User" asp-action="Index" asp-route-id="@sub.CreatorId" class="link link-hover link-primary">@sub.CreatorUserName</a></td>
                             <td>
                                 @if (sub.Active)
                                 {
