@@ -89,19 +89,21 @@ public class VideoController : Controller
             Url = model.Url,
             ThumbnailUrl = model.ThumbnailUrl,
             ThumbnailImageBytes = thumbnailImageBytes,
-            ThumbnailImageFileName = thumbnailImageFileName
+            ThumbnailImageFileName = thumbnailImageFileName,
+            CategoryIds = model.SelectedCategoryIds,
+            PrimaryCategoryId = model.PrimaryCategoryId
         };
 
         var result = await _videoService.UpdateAsync(videoUpdateDto);
-        
+
         if (result.IsError)
         {
             result.AddErrorsToModelState(ModelState);
-            
+
             await _viewModelFactory.PopulateViewModelAsync(model, video);
             return View(model);
         }
-        
+
         return RedirectToAction(nameof(Index));
     }
 }

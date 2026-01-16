@@ -148,8 +148,38 @@ public class VideoService : IVideoService
             video.ThumbnailUrl = dto.ThumbnailUrl;
         }
 
+        // Update categories if provided
+        var categoriesUpdated = false;
+        if (dto.CategoryIds != null)
+        {
+            // Remove existing categories
+            _dbContext.Set<VideoCategory>().RemoveRange(video.VideoCategories);
+            
+            // Add new categories
+            var now = DateTime.UtcNow;
+            var primaryId = dto.PrimaryCategoryId ?? dto.CategoryIds.FirstOrDefault();
+            var newCategories = dto.CategoryIds.Select(categoryId => new VideoCategory
+            {
+                Id = default,
+                VideoId = video.Id,
+                CategoryId = categoryId,
+                IsPrimary = categoryId == primaryId,
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToList();
+            
+            video.VideoCategories = newCategories;
+            categoriesUpdated = true;
+        }
+
         await _videoRepository.UpdateAsync(video);
         await _dbContext.SaveChangesAsync();
+
+        // Reload video to get navigation properties if categories were updated
+        if (categoriesUpdated)
+        {
+            video = (await _videoRepository.GetByIdAsync(dto.Id))!;
+        }
 
         return _mapper.Map(video);
     }

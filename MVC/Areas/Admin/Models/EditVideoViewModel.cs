@@ -24,5 +24,9 @@ public class EditVideoViewModel
     public string? ThumbnailUrl { get; set; }
     
     public IFormFile? ThumbnailImage { get; set; }
+    
+    public List<CategoryDto> AvailableCategories { get; set; } = new();
+    public List<int> SelectedCategoryIds { get; set; } = new();
+    public int? PrimaryCategoryId { get; set; }
 }
 
