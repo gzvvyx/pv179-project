@@ -1,0 +1,293 @@
+@model VideoUploadViewModel
+@{
+    ViewData["Title"] = "Upload Video";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">Upload Your Video</h1>
+            <p class="text-base-content/70">Share your content with the world</p>
+        </div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-error mb-6">
+                <icon name="x-circle" size="24" />
+                <div>
+                    <h3 class="font-bold">Please fix the following errors:</h3>
+                    <ul class="list-disc list-inside">
+                        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <li>@error.ErrorMessage</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
+        <form asp-action="Create" method="post" enctype="multipart/form-data" class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                @Html.AntiForgeryToken()
+
+                <!-- Video File -->
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold text-lg">
+                            <icon name="file-video" class="inline w-5 h-5" />
+                            Video File <span class="text-error">*</span>
+                        </span>
+                    </label>
+                    <input type="file" 
+                           asp-for="VideoFile" 
+                           accept="video/mp4,video/webm,video/ogg"
+                           class="file-input file-input-bordered file-input-primary w-full block"
+                           required />
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">
+                            Upload MP4, WebM, or OGG video file
+                        </span>
+                    </label>
+                    <span asp-validation-for="VideoFile" class="text-error text-sm"></span>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Title -->
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">
+                            Title <span class="text-error">*</span>
+                        </span>
+                    </label>
+                    <input type="text" 
+                           asp-for="Title" 
+                           placeholder="Enter an engaging title for your video"
+                           class="input input-bordered w-full"
+                           maxlength="255"
+                           required />
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">
+                            Make it descriptive and engaging
+                        </span>
+                        <span class="label-text-alt" id="titleCounter">0/255</span>
+                    </label>
+                    <span asp-validation-for="Title" class="text-error text-sm"></span>
+                </div>
+
+                <!-- Description -->
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">
+                            Description <span class="text-error">*</span>
+                        </span>
+                    </label>
+                    <textarea asp-for="Description" 
+                              class="textarea textarea-bordered h-32 w-full"
+                              placeholder="Tell viewers what your video is about..."
+                              maxlength="2000"
+                              required></textarea>
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">
+                            Add details to help viewers find your video
+                        </span>
+                        <span class="label-text-alt" id="descCounter">0/2000</span>
+                    </label>
+                    <span asp-validation-for="Description" class="text-error text-sm"></span>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Thumbnail File -->
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">
+                            <icon name="image" class="inline w-5 h-5" />
+                            Thumbnail Image (Optional)
+                        </span>
+                    </label>
+                    <input type="file" 
+                           asp-for="ThumbnailFile" 
+                           accept="image/*"
+                           class="file-input file-input-bordered w-full block" />
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">
+                            Upload JPEG, PNG, or WebP image. A default thumbnail will be used if not provided.
+                        </span>
+                    </label>
+                    <span asp-validation-for="ThumbnailFile" class="text-error text-sm"></span>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Categories -->
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">
+                            <icon name="tag" class="inline w-5 h-5" />
+                            Categories (Optional)
+                        </span>
+                    </label>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        @foreach (var category in (List<Business.DTOs.CategoryDto>)ViewBag.Categories)
+                        {
+                            <label class="label cursor-pointer justify-start gap-3 p-3 border border-base-300 rounded-lg hover:bg-base-200 transition-colors">
+                                <input type="checkbox" 
+                                       name="SelectedCategoryIds" 
+                                       value="@category.Id" 
+                                       class="checkbox checkbox-primary checkbox-sm"
+                                       onchange="updatePrimaryCategoryOptions()" />
+                                <span class="label-text">@category.Name</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+
+                <!-- Primary Category -->
+                <div class="form-control mb-6" id="primaryCategorySection" style="display: none;">
+                    <label class="label">
+                        <span class="label-text font-semibold">
+                            <icon name="star" class="inline w-5 h-5" />
+                            Primary Category
+                        </span>
+                    </label>
+                    <div class="alert alert-info mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span class="text-sm">Click on a category below to set it as primary (main category for your video)</span>
+                    </div>
+                    <div id="primaryCategoryButtons" class="flex flex-wrap gap-2">
+                        <!-- Primary category buttons will be added here dynamically -->
+                    </div>
+                    <input type="hidden" asp-for="PrimaryCategoryId" id="primaryCategoryInput" />
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-4 justify-end pt-4">
+                    <a href="/" class="btn btn-ghost">
+                        <icon name="x" />
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="uploadBtn">
+                        <icon name="upload" />
+                        <span id="uploadBtnText">Upload Video</span>
+                    </button>
+                </div>
+
+                <!-- Upload Progress -->
+                <div id="uploadProgress" class="mt-6" style="display: none;">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="loading loading-spinner loading-sm"></span>
+                        <span class="text-sm font-medium">Uploading...</span>
+                    </div>
+                    <progress class="progress progress-primary w-full" value="0" max="100" id="progressBar"></progress>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelector('[name="Title"]')?.addEventListener('input', function(e) {
+            document.getElementById('titleCounter').textContent = `${e.target.value.length}/255`;
+        });
+
+        document.querySelector('[name="Description"]')?.addEventListener('input', function(e) {
+            document.getElementById('descCounter').textContent = `${e.target.value.length}/2000`;
+        });
+
+        let selectedCategories = [];
+        let primaryCategoryId = null;
+
+        function updatePrimaryCategoryOptions() {
+            const checkboxes = document.querySelectorAll('input[name="SelectedCategoryIds"]:checked');
+            const primarySection = document.getElementById('primaryCategorySection');
+            const primaryButtons = document.getElementById('primaryCategoryButtons');
+            const primaryInput = document.getElementById('primaryCategoryInput');
+            const allCategories = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.Categories, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+
+            selectedCategories = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            primaryButtons.innerHTML = '';
+
+            if (selectedCategories.length > 0) {
+                primarySection.style.display = 'block';
+                
+                selectedCategories.forEach(categoryId => {
+                    const category = allCategories.find(c => (c.Id || c.id) === categoryId);
+                    
+                    if (category) {
+                        const isPrimary = primaryCategoryId === categoryId;
+                        const categoryName = category.Name || category.name;
+                        
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = `btn btn-sm ${isPrimary ? 'btn-primary' : 'btn-outline btn-primary'}`;
+                        button.onclick = () => setPrimaryCategory(categoryId);
+                        
+                        const starIcon = document.createElement('i');
+                        starIcon.setAttribute('data-lucide', 'star');
+                        starIcon.className = 'w-3 h-3 mr-1'; 
+                        button.appendChild(starIcon);
+                        
+                        button.appendChild(document.createTextNode(categoryName));
+                        
+                        if (isPrimary) {
+                            const checkIcon = document.createElement('i');
+                            checkIcon.setAttribute('data-lucide', 'check');
+                            checkIcon.className = 'w-3 h-3 ml-1';
+                            button.appendChild(checkIcon);
+                        }
+                        
+                        primaryButtons.appendChild(button);
+                    }
+                });
+
+                if (primaryCategoryId === null || !selectedCategories.includes(primaryCategoryId)) {
+                    if (selectedCategories.length > 0) {
+                        setPrimaryCategory(selectedCategories[0]);
+                    }
+                }
+            } else {
+                primarySection.style.display = 'none';
+                primaryCategoryId = null;
+                primaryInput.value = '';
+            }
+            
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+            }
+        }
+
+        function setPrimaryCategory(categoryId) {
+            primaryCategoryId = categoryId;
+            document.getElementById('primaryCategoryInput').value = categoryId;
+            updatePrimaryCategoryOptions();
+        }
+
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadBtnText = document.getElementById('uploadBtnText');
+            const uploadProgress = document.getElementById('uploadProgress');
+            
+            uploadBtn.disabled = true;
+            uploadBtnText.textContent = 'Uploading...';
+            uploadProgress.style.display = 'block';
+
+            let progress = 0;
+            const progressBar = document.getElementById('progressBar');
+            const interval = setInterval(() => {
+                progress += 2;
+                if (progress >= 90) {
+                    clearInterval(interval);
+                } else {
+                    progressBar.value = progress;
+                }
+            }, 200);
+        });
+
+        document.addEventListener('DOMContentLoaded', updatePrimaryCategoryOptions);
+    </script>
+}

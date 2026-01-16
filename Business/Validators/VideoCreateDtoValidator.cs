@@ -23,15 +23,11 @@ public class VideoCreateDtoValidator : AbstractValidator<VideoCreateDto>
 
         RuleFor(x => x.Url)
             .NotEmpty()
-            .WithMessage("Url is required.")
-            .Must(uri => Uri.TryCreate(uri, UriKind.Absolute, out _))
-            .WithMessage("Url must be a valid URL.");
+            .WithMessage("Url is required.");
 
         RuleFor(x => x.ThumbnailUrl)
             .NotEmpty()
-            .WithMessage("ThumbnailUrl is required.")
-            .Must(uri => Uri.TryCreate(uri, UriKind.Absolute, out _))
-            .WithMessage("ThumbnailUrl must be a valid URL.");
+            .WithMessage("ThumbnailUrl is required.");
     }
 }
 

@@ -127,6 +127,7 @@ public class VideoServiceTests
                 var now = DateTime.UtcNow;
                 v.CreatedAt = now;
                 v.UpdatedAt = now;
+                _videoRepo.Setup(repo => repo.GetByIdAsync(v.Id)).ReturnsAsync(v);
             })
             .Returns(Task.CompletedTask);
 
@@ -155,6 +156,7 @@ public class VideoServiceTests
 
         _userRepo.Verify(r => r.GetByIdAsync(dto.CreatorId), Times.Once);
         _videoRepo.Verify(r => r.CreateAsync(It.IsAny<Video>()), Times.Once);
+        _videoRepo.Verify(r => r.GetByIdAsync(created!.Id), Times.Once);
         _userRepo.VerifyNoOtherCalls();
         _videoRepo.VerifyNoOtherCalls();
     }
@@ -268,6 +270,7 @@ public class VideoServiceTests
             {
                 saved = v;
                 v.UpdatedAt = DateTime.UtcNow;
+                _videoRepo.Setup(repo => repo.GetByIdAsync(v.Id)).ReturnsAsync(v);
             })
             .Returns(Task.CompletedTask);
 
@@ -301,7 +304,7 @@ public class VideoServiceTests
         Assert.Equal(saved.Url, dto.Url);
         Assert.Equal(saved.ThumbnailUrl, dto.ThumbnailUrl);
 
-        _videoRepo.Verify(r => r.GetByIdAsync(12), Times.Once);
+        _videoRepo.Verify(r => r.GetByIdAsync(12), Times.Exactly(2));
         _userRepo.Verify(r => r.GetByIdAsync("c2"), Times.Once);
         _videoRepo.Verify(r => r.UpdateAsync(It.IsAny<Video>()), Times.Once);
         _videoRepo.VerifyNoOtherCalls();
