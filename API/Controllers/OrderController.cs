@@ -2,6 +2,7 @@
 using API.DTOs;
 using API.Mappers;
 using Business.DTOs;
+using Business.Mappers;
 using Business.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,7 +15,8 @@ public class OrderController : ControllerBase
 {
     private readonly ILogger<OrderController> _logger;
     private readonly IOrderService _orderService;
-    private readonly OrderRequestMapper _mapper = new();
+    private readonly OrderRequestMapper _requestMapper = new();
+    private readonly OrderResponseMapper _responseMapper = new();
 
     public OrderController(ILogger<OrderController> logger, IOrderService orderService)
     {
@@ -70,20 +72,14 @@ public class OrderController : ControllerBase
             return NotFound();
         }
 
-        var orderWithUsers = new OrderWithUsersDto
-        {
-            Order = order,
-            OrdererName = order.Orderer?.UserName ?? "Unknown",
-            CreatorName = order.Creator?.UserName ?? "Unknown"
-        };
-
+        var orderWithUsers = _responseMapper.ToOrderWithUsersDto(order);
         return Ok(orderWithUsers);
     }
 
     [HttpPost(Name = "CreateOrder")]
     public async Task<ActionResult<OrderDto>> Create([FromBody] OrderCreateRequestDto dto)
     {
-        var createDto = _mapper.ToBusinessDto(dto);
+        var createDto = _requestMapper.ToBusinessDto(dto);
         var result = await _orderService.CreateAsync(createDto);
 
         if (result.IsError)
@@ -97,7 +93,7 @@ public class OrderController : ControllerBase
     [HttpPut("{id:int}", Name = "UpdateOrder")]
     public async Task<ActionResult<OrderDto>> Update(int id, [FromBody] OrderUpdateRequestDto dto)
     {
-        var updateDto = _mapper.ToBusinessDto(dto, id);
+        var updateDto = _requestMapper.ToBusinessDto(dto, id);
         var result = await _orderService.UpdateAsync(updateDto);
 
         return result.ToActionResult();

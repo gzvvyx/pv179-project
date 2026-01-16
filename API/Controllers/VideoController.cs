@@ -23,59 +23,16 @@ public class VideoController : ControllerBase
     }
 
     [HttpGet(Name = "GetVideos")]
-    public async Task<IEnumerable<VideoDto>> Get(
-        [FromQuery] string? title,
-        [FromQuery] string? description,
-        [FromQuery] string? author
-        )
+    public async Task<IEnumerable<VideoDto>> Get([FromQuery] GetVideosRequestDto request)
     {
-        var filter = new VideoFilterDto
-        {
-            Title = title,
-            Description = description,
-            CreatorId = author
-        };
-
+        var filter = _mapper.ToFilterDto(request);
         return await _videoService.GetByFilterAsync(filter);
     }
 
     [HttpGet("paged", Name = "GetVideosPaged")]
-    public async Task<ActionResult<PagedResultDto<VideoDto>>> GetPaged(
-        [FromQuery] string? title,
-        [FromQuery] string? description,
-        [FromQuery] string? author,
-        [FromQuery] int? categoryId,
-        [FromQuery] List<int>? categoryIds,
-        [FromQuery] string? fromDate,
-        [FromQuery] string? toDate,
-        [FromQuery] string? sortBy = "CreatedAt",
-        [FromQuery] bool sortDescending = true,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 12
-    )
+    public async Task<ActionResult<PagedResultDto<VideoDto>>> GetPaged([FromQuery] GetVideosPagedRequestDto request)
     {
-        var filter = new VideoFilterDto
-        {
-            Title = title,
-            Description = description,
-            CreatorId = author,
-            CategoryId = categoryId,
-            CategoryIds = categoryIds,
-            SortBy = sortBy,
-            SortDescending = sortDescending,
-            PageNumber = pageNumber,
-            PageSize = pageSize
-        };
-
-        if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var parsedFromDate))
-        {
-            filter.FromDate = parsedFromDate;
-        }
-        if (!string.IsNullOrEmpty(toDate) && DateTime.TryParse(toDate, out var parsedToDate))
-        {
-            filter.ToDate = parsedToDate;
-        }
-
+        var filter = _mapper.ToFilterDto(request);
         var result = await _videoService.GetByFilterPagedAsync(filter);
         return Ok(result);
     }

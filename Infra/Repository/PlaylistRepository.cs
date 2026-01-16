@@ -106,29 +106,7 @@ namespace Infra.Repository
                 .AsNoTracking()
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
-            {
-                var searchTerm = dto.Name ?? dto.Description;
-                query = query.Where(playlist =>
-                    EF.Functions.ILike(playlist.Name, $"%{searchTerm}%") ||
-                    (playlist.Description != null && EF.Functions.ILike(playlist.Description, $"%{searchTerm}%"))
-                );
-            }
-
-            if (!string.IsNullOrEmpty(dto.CreatorId))
-            {
-                query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
-            }
-
-            if (dto.FromDate.HasValue)
-            {
-                query = query.Where(p => p.CreatedAt >= dto.FromDate.Value);
-            }
-
-            if (dto.ToDate.HasValue)
-            {
-                query = query.Where(p => p.CreatedAt <= dto.ToDate.Value);
-            }
+            query = ApplyFilters(query, dto);
 
             query = dto.SortBy?.ToLower() switch
             {
@@ -154,6 +132,13 @@ namespace Infra.Repository
         {
             var query = _dbContext.Playlists.AsQueryable();
 
+            query = ApplyFilters(query, dto);
+
+            return await query.CountAsync();
+        }
+
+        private IQueryable<Playlist> ApplyFilters(IQueryable<Playlist> query, PlaylistFilterDto dto)
+        {
             if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
             {
                 var searchTerm = dto.Name ?? dto.Description;
@@ -178,7 +163,7 @@ namespace Infra.Repository
                 query = query.Where(p => p.CreatedAt <= dto.ToDate.Value);
             }
 
-            return await query.CountAsync();
+            return query;
         }
     }
 }
