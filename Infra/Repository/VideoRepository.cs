@@ -1,17 +1,22 @@
 using DAL.Data;
 using DAL.Models;
 using Infra.DTOs;
+using Infra.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repository;
 
 public class VideoRepository : IVideoRepository
 {
+    private const string VideoByIdCacheKeyPrefix = "Video_";
+    
     private readonly AppDbContext _dbContext;
+    private readonly ICacheService _cacheService;
 
-    public VideoRepository(AppDbContext dbContext)
+    public VideoRepository(AppDbContext dbContext, ICacheService cacheService)
     {
         _dbContext = dbContext;
+        _cacheService = cacheService;
     }
 
     public Task<List<Video>> GetAllAsync()
@@ -24,13 +29,17 @@ public class VideoRepository : IVideoRepository
             .ToListAsync();
     }
 
-    public Task<Video?> GetByIdAsync(int id)
+    public async Task<Video?> GetByIdAsync(int id)
     {
-        return _dbContext.Videos
-            .Include(video => video.Creator)
-            .Include(video => video.VideoCategories)
-                .ThenInclude(vc => vc.Category)
-            .FirstOrDefaultAsync(video => video.Id == id);
+        var cacheKey = $"{VideoByIdCacheKeyPrefix}{id}";
+        return await _cacheService.GetOrSetAsync(cacheKey, async () =>
+        {
+            return await _dbContext.Videos
+                .Include(video => video.Creator)
+                .Include(video => video.VideoCategories)
+                    .ThenInclude(vc => vc.Category)
+                .FirstOrDefaultAsync(video => video.Id == id);
+        });
     }
 
     public async Task CreateAsync(Video video)
@@ -51,11 +60,13 @@ public class VideoRepository : IVideoRepository
         }
 
         _dbContext.Videos.Update(video);
+        _cacheService.Remove($"{VideoByIdCacheKeyPrefix}{video.Id}");
     }
 
     public async Task DeleteAsync(Video video)
     {
         _dbContext.Videos.Remove(video);
+        _cacheService.Remove($"{VideoByIdCacheKeyPrefix}{video.Id}");
     }
 
     public async Task<List<Video>> GetByFilterAsync(VideoFilterDto dto)

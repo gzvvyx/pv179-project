@@ -1,17 +1,22 @@
 ﻿using DAL.Data;
 using DAL.Models;
 using Infra.DTOs;
+using Infra.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repository
 {
     public class PlaylistRepository : IPlaylistRepository
     {
+        private const string PlaylistWithVideosCacheKeyPrefix = "Playlist_WithVideos_";
+        
         private readonly AppDbContext _dbContext;
+        private readonly ICacheService _cacheService;
 
-        public PlaylistRepository(AppDbContext dbContext)
+        public PlaylistRepository(AppDbContext dbContext, ICacheService cacheService)
         {
             _dbContext = dbContext;
+            _cacheService = cacheService;
         }
 
         public Task<List<Playlist>> GetAllAsync()
@@ -30,17 +35,21 @@ namespace Infra.Repository
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
-        public Task<Playlist?> GetByIdWithVideosAsync(int id)
+        public async Task<Playlist?> GetByIdWithVideosAsync(int id)
         {
-            return _dbContext.Playlists
-                .AsNoTracking()
-                .Include(playlist => playlist.Creator)
-                .Include(playlist => playlist.Videos)
-                    .ThenInclude(video => video.Creator)
-                .Include(playlist => playlist.Videos)
-                    .ThenInclude(video => video.VideoCategories)
-                        .ThenInclude(vc => vc.Category)
-                .FirstOrDefaultAsync(p => p.Id == id);
+            var cacheKey = $"{PlaylistWithVideosCacheKeyPrefix}{id}";
+            return await _cacheService.GetOrSetAsync(cacheKey, async () =>
+            {
+                return await _dbContext.Playlists
+                    .AsNoTracking()
+                    .Include(playlist => playlist.Creator)
+                    .Include(playlist => playlist.Videos)
+                        .ThenInclude(video => video.Creator)
+                    .Include(playlist => playlist.Videos)
+                        .ThenInclude(video => video.VideoCategories)
+                            .ThenInclude(vc => vc.Category)
+                    .FirstOrDefaultAsync(p => p.Id == id);
+            });
         }
 
         public async Task CreateAsync(Playlist playlist)
@@ -61,11 +70,13 @@ namespace Infra.Repository
             }
 
             _dbContext.Playlists.Update(playlist);
+            _cacheService.Remove($"{PlaylistWithVideosCacheKeyPrefix}{playlist.Id}");
         }
 
         public async Task DeleteAsync(Playlist playlist)
         {
             _dbContext.Playlists.Remove(playlist);
+            _cacheService.Remove($"{PlaylistWithVideosCacheKeyPrefix}{playlist.Id}");
         }
 
         public async Task RemoveVideoFromPlaylistAsync(Playlist playlist, Video video)
@@ -74,6 +85,7 @@ namespace Infra.Repository
             {
                 playlist.Videos.Remove(video);
                 await _dbContext.SaveChangesAsync();
+                _cacheService.Remove($"{PlaylistWithVideosCacheKeyPrefix}{playlist.Id}");
             }
         }
 
@@ -83,6 +95,7 @@ namespace Infra.Repository
             {
                 playlist.Videos.Add(video);
                 await _dbContext.SaveChangesAsync();
+                _cacheService.Remove($"{PlaylistWithVideosCacheKeyPrefix}{playlist.Id}");
             }
         }
 
