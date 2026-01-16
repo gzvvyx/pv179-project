@@ -108,6 +108,23 @@ http://localhost:5076
   - The gift card code used (if any)
   - Contextual alerts for payment status (pending, completed, failed)
 
+### Playlists
+- Users can create a playlist to organize their favorite videos.
+- Each playlist has:
+  - Title, description, creation date, and owner (creator)
+  - A list of videos added to the playlist
+
+### Video upload
+- Users can upload videos via the **Upload Video** page.
+- The upload form includes fields for:
+  - Title
+  - Thumbnail image 
+  - Video
+  - Description
+  - Primary category (dropdown)
+  - Secondary categories (multi-select)
+  - Video file upload
+
 ### Subscription & Purchase Flow
 
 - Each creator (user) has a simple public detail page, where users can view their profile and content.
