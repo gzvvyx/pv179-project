@@ -32,7 +32,7 @@ public class PaymentService : IPaymentService
         _dbContext = dbContext;
     }
 
-    public async Task<ErrorOr<PaymentResultDto>> ProcessSubscriptionPaymentAsync(ProcessPaymentDto dto)
+    public async Task<ErrorOr<PaymentResultDto>> ProcessSubscriptionPaymentAsync(PaymentProcessDto dto)
     {
         // Validate users exist
         var creator = await _userRepository.GetByIdAsync(dto.CreatorId);
@@ -60,7 +60,7 @@ public class PaymentService : IPaymentService
         // Validate and apply gift card if provided
         decimal discount = 0;
         GiftCardCode? giftCardCode = null;
-        
+
         if (!string.IsNullOrWhiteSpace(dto.GiftCardCode))
         {
             var giftCardResult = await ValidateGiftCardCodeInternalAsync(dto.GiftCardCode);
@@ -68,14 +68,13 @@ public class PaymentService : IPaymentService
             {
                 return giftCardResult.Errors;
             }
-            
+
             giftCardCode = giftCardResult.Value;
             discount = giftCardCode.GiftCard.PriceReduction;
         }
 
         var finalAmount = Math.Max(0, originalAmount - discount);
 
-        // Create the order
         var order = new Order
         {
             Id = default,
@@ -89,16 +88,12 @@ public class PaymentService : IPaymentService
             UpdatedAt = default
         };
 
-        await _orderRepository.CreateAsync(order);
-        await _dbContext.SaveChangesAsync();
-
         // Mark gift card code as used if applied
         if (giftCardCode is not null)
         {
             giftCardCode.Used = true;
-            giftCardCode.OrderId = order.Id;
+            giftCardCode.Order = order;
             await _giftCardCodeRepository.UpdateAsync(giftCardCode);
-            await _dbContext.SaveChangesAsync();
         }
 
         // Create subscription
@@ -118,8 +113,9 @@ public class PaymentService : IPaymentService
             CreatedAt = default,
             UpdatedAt = default
         };
-
+        await _orderRepository.CreateAsync(order);
         await _subscriptionRepository.CreateAsync(subscription);
+
         await _dbContext.SaveChangesAsync();
 
         return new PaymentResultDto

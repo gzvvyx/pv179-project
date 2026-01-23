@@ -32,4 +32,3 @@ public class SubscribeResultViewModel
     public DateTime? ExpiresAt { get; set; }
     public string? ErrorMessage { get; set; }
 }
-

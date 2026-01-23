@@ -1,4 +1,5 @@
 ﻿using DAL.Models;
+using Infra.DTOs;
 
 namespace Infra.Repository
 {

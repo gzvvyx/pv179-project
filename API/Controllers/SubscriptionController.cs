@@ -1,5 +1,6 @@
 ﻿using API.DTOs;
 using API.Extensions;
+using API.Mappers;
 using Business.DTOs;
 using Business.Services;
 using DAL.Services;
@@ -17,6 +18,7 @@ public class SubscriptionController : ControllerBase
     private readonly IPaymentService _paymentService;
     private readonly IUserService _userService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly SubscriptionRequestMapper _mapper = new();
 
     public SubscriptionController(
         ILogger<SubscriptionController> logger, 
@@ -144,14 +146,7 @@ public class SubscriptionController : ControllerBase
             return BadRequest(new { error = "You cannot subscribe to yourself." });
         }
 
-        var paymentDto = new ProcessPaymentDto
-        {
-            OrdererId = currentUserId,
-            CreatorId = request.CreatorId,
-            Timeframe = request.Timeframe,
-            GiftCardCode = request.GiftCardCode
-        };
-
+        var paymentDto = _mapper.ToPaymentProcessDto(request, currentUserId);
         var result = await _paymentService.ProcessSubscriptionPaymentAsync(paymentDto);
 
         if (result.IsError)
@@ -168,6 +163,36 @@ public class SubscriptionController : ControllerBase
             currentUserId, request.CreatorId, paymentResult.FinalAmount);
 
         return Ok(paymentResult);
+    }
+
+    [HttpPost("{id:int}/unsubscribe", Name = "Unsubscribe")]
+    public async Task<ActionResult<SubscriptionDto>> Unsubscribe(int id)
+    {
+        var currentUserId = _currentUserService.GetUserId();
+        if (currentUserId is null)
+        {
+            return Unauthorized(new { error = "User not authenticated." });
+        }
+
+        var updateDto = new SubscriptionUpdateDto
+        {
+            Id = id,
+            Active = false
+        };
+
+        var result = await _subscriptionService.UpdateAsync(updateDto);
+
+        return result.Match(
+            _ => {
+                _logger.LogInformation("User {UserId} unsubscribed from {SubId}", currentUserId, id);
+                return NoContent();
+            },
+            errors => {
+                _logger.LogWarning("Unsubscribe failed for {SubId}: {Errors}",
+                    id, string.Join(", ", errors.Select(e => e.Description)));
+                return result.ToActionResult();
+            }
+        );
     }
 
     [HttpPost("validate-gift-card", Name = "ValidateGiftCard")]

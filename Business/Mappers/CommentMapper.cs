@@ -8,6 +8,8 @@ namespace Business.Mappers
     public partial class CommentMapper
     {
         public partial List<CommentDto> Map(List<Comment> comments);
+        
+        [MapProperty(nameof(Comment.Replies), nameof(CommentDto.Replies))]
         public partial CommentDto Map(Comment comment);
     }
 }

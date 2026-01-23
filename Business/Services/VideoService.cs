@@ -80,10 +80,30 @@ public class VideoService : IVideoService
             UpdatedAt = default
         };
 
+        if (dto.CategoryIds != null && dto.CategoryIds.Count > 0)
+        {
+            foreach (var categoryId in dto.CategoryIds.Distinct())
+            {
+                var isPrimary = dto.PrimaryCategoryId.HasValue && dto.PrimaryCategoryId.Value == categoryId;
+                
+                video.VideoCategories.Add(new VideoCategory
+                {
+                    Id = default,
+                    VideoId = default,
+                    CategoryId = categoryId,
+                    IsPrimary = isPrimary,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
         await _videoRepository.CreateAsync(video);
         await _dbContext.SaveChangesAsync();
 
-        return _mapper.Map(video);
+        var createdVideo = await _videoRepository.GetByIdAsync(video.Id);
+        
+        return _mapper.Map(createdVideo);
     }
 
     public async Task<ErrorOr<VideoDto>> UpdateAsync(VideoUpdateDto dto)
@@ -148,10 +168,56 @@ public class VideoService : IVideoService
             video.ThumbnailUrl = dto.ThumbnailUrl;
         }
 
+        if (dto.CategoryIds != null)
+        {
+            video.VideoCategories.Clear();
+
+            foreach (var categoryId in dto.CategoryIds.Distinct())
+            {
+                var isPrimary = dto.PrimaryCategoryId.HasValue && dto.PrimaryCategoryId.Value == categoryId;
+                
+                video.VideoCategories.Add(new VideoCategory
+                {
+                    Id = default,
+                    VideoId = video.Id,
+                    CategoryId = categoryId,
+                    IsPrimary = isPrimary,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        // Update categories if provided
+        var categoriesUpdated = false;
+        if (dto.CategoryIds != null)
+        {
+            // Remove existing categories
+            _dbContext.Set<VideoCategory>().RemoveRange(video.VideoCategories);
+            
+            // Add new categories
+            var now = DateTime.UtcNow;
+            var primaryId = dto.PrimaryCategoryId ?? dto.CategoryIds.FirstOrDefault();
+            var newCategories = dto.CategoryIds.Select(categoryId => new VideoCategory
+            {
+                Id = default,
+                VideoId = video.Id,
+                CategoryId = categoryId,
+                IsPrimary = categoryId == primaryId,
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToList();
+            
+            video.VideoCategories = newCategories;
+            categoriesUpdated = true;
+        }
+
         await _videoRepository.UpdateAsync(video);
         await _dbContext.SaveChangesAsync();
 
-        return _mapper.Map(video);
+        var updatedVideo = await _videoRepository.GetByIdAsync(video.Id);
+
+        return _mapper.Map(updatedVideo);
     }
 
     private async Task<ErrorOr<string>> ProcessThumbnailUploadAsync(
@@ -239,5 +305,94 @@ public class VideoService : IVideoService
             PageNumber = dto.PageNumber,
             PageSize = dto.PageSize
         };
+    }
+
+    public async Task<ErrorOr<Success>> AddCategoryAsync(int videoId, int categoryId, bool isPrimary = false)
+    {
+        var video = await _videoRepository.GetByIdAsync(videoId);
+        if (video == null)
+        {
+            return Error.NotFound("Video.NotFound", "Video not found");
+        }
+
+        if (video.VideoCategories.Any(vc => vc.CategoryId == categoryId))
+        {
+            return Error.Conflict("Category.AlreadyExists", "This category is already added to the video");
+        }
+
+        if (isPrimary)
+        {
+            foreach (var vc in video.VideoCategories.Where(vc => vc.IsPrimary))
+            {
+                vc.IsPrimary = false;
+            }
+        }
+
+        var videoCategory = new VideoCategory
+        {
+            Id = default,
+            VideoId = videoId,
+            CategoryId = categoryId,
+            IsPrimary = isPrimary,
+            CreatedAt = default,
+            UpdatedAt = default
+        };
+
+        video.VideoCategories.Add(videoCategory);
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Category {CategoryId} added to video {VideoId} (Primary: {IsPrimary})",
+            categoryId, videoId, isPrimary);
+
+        return Result.Success;
+    }
+
+    public async Task<ErrorOr<Success>> RemoveCategoryAsync(int videoId, int categoryId)
+    {
+        var video = await _videoRepository.GetByIdAsync(videoId);
+        if (video == null)
+        {
+            return Error.NotFound("Video.NotFound", "Video not found");
+        }
+
+        var videoCategory = video.VideoCategories.FirstOrDefault(vc => vc.CategoryId == categoryId);
+        if (videoCategory == null)
+        {
+            return Error.NotFound("Category.NotFound", "This category is not associated with the video");
+        }
+
+        video.VideoCategories.Remove(videoCategory);
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Category {CategoryId} removed from video {VideoId}", categoryId, videoId);
+
+        return Result.Success;
+    }
+
+    public async Task<ErrorOr<Success>> SetPrimaryCategoryAsync(int videoId, int categoryId)
+    {
+        var video = await _videoRepository.GetByIdAsync(videoId);
+        if (video == null)
+        {
+            return Error.NotFound("Video.NotFound", "Video not found");
+        }
+
+        var targetCategory = video.VideoCategories.FirstOrDefault(vc => vc.CategoryId == categoryId);
+        if (targetCategory == null)
+        {
+            return Error.NotFound("Category.NotFound", "This category is not associated with the video");
+        }
+
+        foreach (var vc in video.VideoCategories.Where(vc => vc.IsPrimary))
+        {
+            vc.IsPrimary = false;
+        }
+
+        targetCategory.IsPrimary = true;
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Category {CategoryId} set as primary for video {VideoId}", categoryId, videoId);
+
+        return Result.Success;
     }
 }

@@ -1,5 +1,6 @@
 ﻿using DAL.Data;
 using DAL.Models;
+using Infra.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repository
@@ -34,16 +35,12 @@ namespace Infra.Repository
                 .AsNoTracking()
                 .Include(comment => comment.Author)
                 .Where(comment => comment.VideoId == videoId)
+                .OrderBy(comment => comment.CreatedAt)
                 .ToListAsync();
         }
 
         public async Task CreateAsync(Comment comment)
         {
-            if (comment.Author is not null)
-            {
-                _dbContext.Attach(comment.Author);
-            }
-
             await _dbContext.Comments.AddAsync(comment);
         }
 

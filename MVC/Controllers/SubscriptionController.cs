@@ -4,6 +4,7 @@ using DAL.Models.Enums;
 using DAL.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using pv179.Mappers;
 using pv179.Models;
 
 namespace pv179.Controllers;
@@ -15,17 +16,40 @@ public class SubscriptionController : Controller
     private readonly IPaymentService _paymentService;
     private readonly IUserService _userService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ISubscriptionService _subscriptionService;
+    private readonly SubscriptionViewMapper _mapper = new();
+
 
     public SubscriptionController(
         ILogger<SubscriptionController> logger,
         IPaymentService paymentService,
         IUserService userService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ISubscriptionService subscriptionService)
     {
         _logger = logger;
         _paymentService = paymentService;
         _userService = userService;
         _currentUserService = currentUserService;
+        _subscriptionService = subscriptionService;
+        _mapper = new SubscriptionViewMapper();
+    }
+
+    public async Task<IActionResult> MySubscriptions()
+    {
+        var userId = _currentUserService.GetUserId()
+            ?? throw new UnauthorizedAccessException("User ID not found in authenticated context.");
+
+        var subscriptions = await _subscriptionService.GetBySubscriberIdAsync(userId);
+        if (subscriptions.IsError)
+        {
+            _logger.LogError("Error retrieving subscriptions for user {UserId}: {Errors}", userId, string.Join(", ", subscriptions.Errors.Select(e => e.Description)));
+            return View(new List<SubscriptionViewModel>());
+        }
+
+        var viewModel = _mapper.MapToViewModelList(subscriptions.Value);
+
+        return View(viewModel);
     }
 
     /// <summary>
@@ -68,6 +92,33 @@ public class SubscriptionController : Controller
         return View(viewModel);
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Unsubscribe(int subId)
+    {
+        var currentUserId = _currentUserService.GetUserId();
+        if (currentUserId is null)
+        {
+            return Unauthorized();
+        }
+
+        var updateDto = new SubscriptionUpdateDto
+        {
+            Id = subId,
+            Active = false
+        };
+
+        var result = await _subscriptionService.UpdateAsync(updateDto);
+
+        if (result.IsError)
+        {
+            _logger.LogError("Failed to unsubscribe {SubId}: {Error}", subId, result.FirstError.Description);
+            return RedirectToAction(nameof(MySubscriptions));
+        }
+
+        return RedirectToAction(nameof(MySubscriptions));
+    }
+
     /// <summary>
     /// Processes the subscription payment
     /// </summary>
@@ -93,7 +144,7 @@ public class SubscriptionController : Controller
             return View(model);
         }
 
-        var paymentDto = new ProcessPaymentDto
+        var paymentDto = new PaymentProcessDto
         {
             OrdererId = currentUserId,
             CreatorId = model.CreatorId,

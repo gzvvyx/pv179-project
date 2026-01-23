@@ -30,7 +30,13 @@ public class OrderController : Controller
             ?? throw new UnauthorizedAccessException("User ID not found in authenticated context.");
 
         var orders = await _orderService.GetByOrdererIdAsync(userId);
-        var viewModel = _mapper.MapToViewModelList(orders);
+        if (orders.IsError)
+        {
+            _logger.LogError("Error retrieving orders for user {UserId}: {Errors}", userId, string.Join(", ", orders.Errors.Select(e => e.Description)));
+            return View(new List<Models.OrderViewModel>());
+        }
+
+        var viewModel = _mapper.MapToViewModelList(orders.Value);
 
         return View(viewModel);
     }

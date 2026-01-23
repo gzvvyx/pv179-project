@@ -52,14 +52,7 @@ public class UserRepository : IUserRepository
     {
         var query = _userManager.Users.AsQueryable();
 
-        if (!string.IsNullOrEmpty(dto.UserName) || !string.IsNullOrEmpty(dto.Email))
-        {
-            var searchTerm = dto.UserName ?? dto.Email;
-            query = query.Where(user =>
-                (user.UserName != null && EF.Functions.ILike(user.UserName, $"%{searchTerm}%")) ||
-                (user.Email != null && EF.Functions.ILike(user.Email, $"%{searchTerm}%"))
-            );
-        }
+        query = ApplyFilters(query, dto);
 
         query = dto.SortBy?.ToLower() switch
         {
@@ -82,6 +75,13 @@ public class UserRepository : IUserRepository
     {
         var query = _userManager.Users.AsQueryable();
 
+        query = ApplyFilters(query, dto);
+
+        return await query.CountAsync();
+    }
+
+    private IQueryable<User> ApplyFilters(IQueryable<User> query, UserFilterDto dto)
+    {
         if (!string.IsNullOrEmpty(dto.UserName) || !string.IsNullOrEmpty(dto.Email))
         {
             var searchTerm = dto.UserName ?? dto.Email;
@@ -91,6 +91,6 @@ public class UserRepository : IUserRepository
             );
         }
 
-        return await query.CountAsync();
+        return query;
     }
 }

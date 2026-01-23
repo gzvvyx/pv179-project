@@ -1,6 +1,7 @@
-﻿namespace pv179.Models;
+﻿
+namespace pv179.Models;
 
-public record PlaylistItemVM(
+public record PlaylistItemViewModel(
     int Id,
     string Name,
     string? Description,

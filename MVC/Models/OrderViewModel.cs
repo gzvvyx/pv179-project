@@ -6,6 +6,7 @@ public class OrderViewModel
 {
     public required int Id { get; set; }
     public required string OrdererUserName { get; set; }
+    public required string CreatorId { get; set; }
     public required string CreatorUserName { get; set; }
     public required decimal Amount { get; set; }
     public required OrderStatus Status { get; set; }

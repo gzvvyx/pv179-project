@@ -47,12 +47,6 @@ public class UserService : IUserService
         return user is null ? null : _mapper.Map(user);
     }
 
-    public async Task<UserDetailsDto?> GetDetailsByIdAsync(string id)
-    {
-        var user = await _userRepository.GetDetailsByIdAsync(id);
-        return user is null ? null : _mapper.MapDetails(user);
-    }
-
     public async Task<ErrorOr<UserDto>> CreateAsync(UserCreateDto dto)
     {
         var validationResult = await _createValidator.ValidateAsync(dto);

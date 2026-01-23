@@ -9,5 +9,7 @@ public class VideoUpdateRequestDto
     public string? ThumbnailUrl { get; set; }
     public string? ThumbnailImageBase64 { get; set; }
     public string? ThumbnailImageFileName { get; set; }
+    public List<int>? CategoryIds { get; set; }
+    public int? PrimaryCategoryId { get; set; }
 }
 

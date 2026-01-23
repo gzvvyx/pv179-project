@@ -1,17 +1,22 @@
 ﻿using DAL.Data;
 using DAL.Models;
 using Infra.DTOs;
+using Infra.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repository
 {
     public class PlaylistRepository : IPlaylistRepository
     {
+        private const string PlaylistWithVideosCacheKeyPrefix = "Playlist_WithVideos_";
+        
         private readonly AppDbContext _dbContext;
+        private readonly ICacheService _cacheService;
 
-        public PlaylistRepository(AppDbContext dbContext)
+        public PlaylistRepository(AppDbContext dbContext, ICacheService cacheService)
         {
             _dbContext = dbContext;
+            _cacheService = cacheService;
         }
 
         public Task<List<Playlist>> GetAllAsync()
@@ -26,7 +31,25 @@ namespace Infra.Repository
         {
             return _dbContext.Playlists
                 .Include(playlist => playlist.Creator)
+                .Include(playlist => playlist.Videos)
                 .FirstOrDefaultAsync(o => o.Id == id);
+        }
+
+        public async Task<Playlist?> GetByIdWithVideosAsync(int id)
+        {
+            var cacheKey = $"{PlaylistWithVideosCacheKeyPrefix}{id}";
+            return await _cacheService.GetOrSetAsync(cacheKey, async () =>
+            {
+                return await _dbContext.Playlists
+                    .AsNoTracking()
+                    .Include(playlist => playlist.Creator)
+                    .Include(playlist => playlist.Videos)
+                        .ThenInclude(video => video.Creator)
+                    .Include(playlist => playlist.Videos)
+                        .ThenInclude(video => video.VideoCategories)
+                            .ThenInclude(vc => vc.Category)
+                    .FirstOrDefaultAsync(p => p.Id == id);
+            });
         }
 
         public async Task CreateAsync(Playlist playlist)
@@ -47,11 +70,33 @@ namespace Infra.Repository
             }
 
             _dbContext.Playlists.Update(playlist);
+            _cacheService.Remove($"{PlaylistWithVideosCacheKeyPrefix}{playlist.Id}");
         }
 
         public async Task DeleteAsync(Playlist playlist)
         {
             _dbContext.Playlists.Remove(playlist);
+            _cacheService.Remove($"{PlaylistWithVideosCacheKeyPrefix}{playlist.Id}");
+        }
+
+        public async Task RemoveVideoFromPlaylistAsync(Playlist playlist, Video video)
+        {
+            if (playlist.Videos.Contains(video))
+            {
+                playlist.Videos.Remove(video);
+                await _dbContext.SaveChangesAsync();
+                _cacheService.Remove($"{PlaylistWithVideosCacheKeyPrefix}{playlist.Id}");
+            }
+        }
+
+        public async Task AddVideoToPlaylistAsync(Playlist playlist, Video video)
+        {
+            if (!playlist.Videos.Contains(video))
+            {
+                playlist.Videos.Add(video);
+                await _dbContext.SaveChangesAsync();
+                _cacheService.Remove($"{PlaylistWithVideosCacheKeyPrefix}{playlist.Id}");
+            }
         }
 
         public async Task<List<Playlist>> GetByFilterAsync(PlaylistFilterDto dto)
@@ -61,29 +106,7 @@ namespace Infra.Repository
                 .AsNoTracking()
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
-            {
-                var searchTerm = dto.Name ?? dto.Description;
-                query = query.Where(playlist =>
-                    EF.Functions.ILike(playlist.Name, $"%{searchTerm}%") ||
-                    (playlist.Description != null && EF.Functions.ILike(playlist.Description, $"%{searchTerm}%"))
-                );
-            }
-
-            if (!string.IsNullOrEmpty(dto.CreatorId))
-            {
-                query = query.Where(playlist => playlist.CreatorId == dto.CreatorId);
-            }
-
-            if (dto.FromDate.HasValue)
-            {
-                query = query.Where(p => p.CreatedAt >= dto.FromDate.Value);
-            }
-
-            if (dto.ToDate.HasValue)
-            {
-                query = query.Where(p => p.CreatedAt <= dto.ToDate.Value);
-            }
+            query = ApplyFilters(query, dto);
 
             query = dto.SortBy?.ToLower() switch
             {
@@ -109,6 +132,13 @@ namespace Infra.Repository
         {
             var query = _dbContext.Playlists.AsQueryable();
 
+            query = ApplyFilters(query, dto);
+
+            return await query.CountAsync();
+        }
+
+        private IQueryable<Playlist> ApplyFilters(IQueryable<Playlist> query, PlaylistFilterDto dto)
+        {
             if (!string.IsNullOrEmpty(dto.Name) || !string.IsNullOrEmpty(dto.Description))
             {
                 var searchTerm = dto.Name ?? dto.Description;
@@ -133,7 +163,7 @@ namespace Infra.Repository
                 query = query.Where(p => p.CreatedAt <= dto.ToDate.Value);
             }
 
-            return await query.CountAsync();
+            return query;
         }
     }
 }

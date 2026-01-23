@@ -12,6 +12,7 @@ namespace Business.Services;
 public class GiftCardCodeService : IGiftCardCodeService
 {
     private readonly IGiftCardCodeRepository _giftCardCodeRepository;
+    private readonly IGiftCardRepository _giftCardRepository;
     private readonly IUserRepository _userRepository;
     private readonly IValidator<GiftCardCodeCreateDto> _createValidator;
     private readonly IValidator<GiftCardCodeUpdateDto> _updateValidator;
@@ -19,13 +20,15 @@ public class GiftCardCodeService : IGiftCardCodeService
     private readonly GiftCardCodeMapper _mapper = new();
     
     public GiftCardCodeService(
-        IGiftCardCodeRepository giftCardCodeRepository, 
+        IGiftCardCodeRepository giftCardCodeRepository,
+        IGiftCardRepository giftCardRepository,
         IUserRepository userRepository,
         AppDbContext dbContext,
         IValidator<GiftCardCodeCreateDto> createValidator,
         IValidator<GiftCardCodeUpdateDto> updateValidator)
     {
         _giftCardCodeRepository = giftCardCodeRepository;
+        _giftCardRepository = giftCardRepository;
         _userRepository = userRepository;
         _dbContext = dbContext;
         _createValidator = createValidator;
@@ -50,12 +53,18 @@ public class GiftCardCodeService : IGiftCardCodeService
             return validationResult.ToErrors();
         }
 
+        var giftCard = await _giftCardRepository.GetByIdAsync(dto.GiftCardId);
+        if (giftCard == null)
+        {
+            return Error.NotFound("GiftCard.NotFound", "Gift card not found.");
+        }
+
         var giftCardCode = new GiftCardCode
         {
             Code = dto.Code,
             Used = dto.Used,
             GiftCardId = dto.GiftCardId,
-            GiftCard = dto.GiftCard
+            GiftCard = giftCard
         };
 
         await _giftCardCodeRepository.CreateAsync(giftCardCode);

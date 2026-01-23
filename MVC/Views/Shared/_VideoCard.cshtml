@@ -12,7 +12,11 @@
             <div class="flex flex-col gap-1 flex-1">
                 <div class="text-xs opacity-60">
                     <icon name="user" class="w-3 h-3 inline" />
-                    @Model.Creator.UserName
+                    <a asp-controller="User" asp-action="Index" asp-route-id="@Model.Creator.Id" class="link link-hover">@Model.Creator.UserName</a>
+                </div>
+                <div class="text-xs opacity-60">
+                    <icon name="calendar" class="w-3 h-3 inline" />
+                    @Model.CreatedAt.ToString("MMM d, yyyy")
                 </div>
                 @if (Model.Categories.Any())
                 {
@@ -46,7 +50,7 @@
                     </div>
                 }
             </div>
-            <a asp-controller="VideoDetail" asp-action="Detail" asp-route-id="@Model.Id" class="btn btn-primary btn-sm">
+            <a asp-controller="VideoDetail" asp-action="Detail" asp-route-id="@Model.Id" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" class="btn btn-primary btn-sm">
                 <icon name="play" />
                 Watch
             </a>

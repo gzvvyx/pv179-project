@@ -1,4 +1,6 @@
 ﻿using API.Extensions;
+using API.DTOs;
+using API.Mappers;
 using Business.DTOs;
 using Business.Services;
 using Infra.DTOs;
@@ -12,26 +14,18 @@ public class UserController : ControllerBase
 {
     private readonly ILogger<UserController> _logger;
     private readonly IUserService _userService;
+    private readonly UserRequestMapper _mapper = new();
 
     public UserController(ILogger<UserController> logger, IUserService userService)
     {
         _logger = logger;
         _userService = userService;
-
     }
 
     [HttpGet(Name = "GetUsers")]
-    public async Task<IEnumerable<UserDto>> Get(
-        [FromQuery] string? userName,
-        [FromQuery] string? email
-    )
+    public async Task<IEnumerable<UserDto>> Get([FromQuery] GetUsersRequestDto request)
     {
-        var filter = new UserFilterDto
-        {
-            UserName = userName,
-            Email = email
-        };
-
+        var filter = _mapper.ToFilterDto(request);
         return await _userService.GetByFilterAsync(filter);
     }
 
@@ -47,38 +41,10 @@ public class UserController : ControllerBase
         return Ok(user);
     }
 
-    [HttpGet("{id}/details", Name = "GetUserDetailsById")]
-    public async Task<ActionResult<UserDetailsDto>> GetDetailsById(string id)
-    {
-        var userDetails = await _userService.GetDetailsByIdAsync(id);
-        if (userDetails is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(userDetails);
-    }
-
     [HttpGet("paged", Name = "GetUsersPaged")]
-    public async Task<ActionResult<PagedResultDto<UserDto>>> GetPaged(
-        [FromQuery] string? userName,
-        [FromQuery] string? email,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 12,
-        [FromQuery] string? sortBy = "UserName",
-        [FromQuery] bool sortDescending = false
-    )
+    public async Task<ActionResult<PagedResultDto<UserDto>>> GetPaged([FromQuery] GetUsersPagedRequestDto request)
     {
-        var filter = new UserFilterDto
-        {
-            UserName = userName,
-            Email = email,
-            PageNumber = pageNumber,
-            PageSize = pageSize,
-            SortBy = sortBy,
-            SortDescending = sortDescending
-        };
-
+        var filter = _mapper.ToFilterDto(request);
         var result = await _userService.GetByFilterPagedAsync(filter);
         return Ok(result);
     }

@@ -36,8 +36,17 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Name = "X-API-KEY",
         Type = SecuritySchemeType.ApiKey,
-        Description = "API Key",
+        Description = "API Key for authentication",
         Scheme = "ApiKeyScheme"
+    });
+
+    options.AddSecurityDefinition("ImpersonateUserId", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Name = "X-Impersonate-User-Id",
+        Type = SecuritySchemeType.ApiKey,
+        Description = "User ID to impersonate (optional). When set, API calls will be executed as the specified user.",
+        Scheme = "ImpersonateScheme"
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -49,6 +58,17 @@ builder.Services.AddSwaggerGen(options =>
                 {
                     Type = ReferenceType.SecurityScheme,
                     Id = "ApiKey"
+                }
+            },
+            new string[] { }
+        },
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "ImpersonateUserId"
                 }
             },
             new string[] { }

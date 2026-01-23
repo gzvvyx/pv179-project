@@ -1,14 +1,4 @@
-using DAL.Models.Enums;
-
-namespace Business.DTOs;
-
-public class ProcessPaymentDto
-{
-    public required string OrdererId { get; set; }
-    public required string CreatorId { get; set; }
-    public required SubscriptionTimeframe Timeframe { get; set; }
-    public string? GiftCardCode { get; set; }
-}
+﻿namespace Business.DTOs;
 
 public class PaymentResultDto
 {
@@ -20,4 +10,3 @@ public class PaymentResultDto
     public decimal DiscountApplied { get; set; }
     public string? GiftCardCodeUsed { get; set; }
 }
-

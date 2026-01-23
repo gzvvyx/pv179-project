@@ -115,3 +115,6 @@ vite.config.ts.timestamp-*
 
 # Build css
 wwwroot/main.css
+
+# Files
+wwwroot/uploads

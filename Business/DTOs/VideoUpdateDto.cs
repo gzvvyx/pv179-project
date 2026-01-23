@@ -10,5 +10,7 @@ public class VideoUpdateDto
     public string? ThumbnailUrl { get; set; }
     public byte[]? ThumbnailImageBytes { get; set; }
     public string? ThumbnailImageFileName { get; set; }
+    public List<int>? CategoryIds { get; set; }
+    public int? PrimaryCategoryId { get; set; }
 }
 
